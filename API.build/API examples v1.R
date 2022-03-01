@@ -3,12 +3,10 @@
 library(plumber)
 
 #install.packages("remotes")
-remotes::install_github("traitecoevo/austraits", build_vignettes = TRUE)
+#remotes::install_github("traitecoevo/austraits", build_vignettes = TRUE)
 
 library(austraits) 
-austraits <- load_austraits()
-
-
+austraits <- load_austraits(path="data/austraits")
 
 #* Health Check - Is the API running?
 #* @get /health-check
