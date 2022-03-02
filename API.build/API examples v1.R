@@ -8,8 +8,13 @@
 #install.packages("plumber")
 library(plumber)
 
+
 #install.packages("tidyverse)
 library(tidyverse)
+
+#install.packages("remotes")
+#remotes::install_github("traitecoevo/austraits", build_vignettes = TRUE)
+
 
 #install.packages("remotes")
 #remotes::install_github("traitecoevo/austraits", build_vignettes = TRUE)
@@ -30,8 +35,25 @@ status = function(){
   )
 }
 
+
 ################################################################################
 # Log some information about the incoming request
+
+# The filter function allows some action to be done before the incoming query is passed on (plumber::forward()) to the relevant @get function
+
+#* Log some information about the incoming request
+#* @filter logger
+function(req){
+  cat(as.character(Sys.time()), "-",
+      req$REQUEST_METHOD, req$PATH_INFO, "-",
+      req$HTTP_USER_AGENT, "@", req$REMOTE_ADDR, "\n")
+  plumber::forward()
+}
+
+
+
+
+
 
 # The @filter function in r plumber allows some action to be completed 
 # before the incoming request is passed on (using plumber::forward()) to the relevant @get function. 
