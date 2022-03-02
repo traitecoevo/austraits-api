@@ -9,7 +9,7 @@
 library(plumber)
 
 
-#install.packages("tidyverse)
+#install.packages("tidyverse")
 library(tidyverse)
 
 #install.packages("remotes")
@@ -227,8 +227,4 @@ function(taxa = "", collection = "", type_of_value = ""){
 
 }
 
-# #* @plumber 
-# function(pr){
-#   pr %>% 
-#     pr_set_api_spec(yaml::read_yaml("AusTraits_API_test_1.yml"))
-# }
+
