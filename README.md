@@ -6,3 +6,6 @@ The basic functions allow users to subset the data based on taxa and trait, retu
 
 Developing the API functions will be an iterative process as we consult with the needs of our partners. 
 
+To run the code and test the API endpoints, click the Run API button in the top right hand corner of R studio (see image link below). A dialogue box should open up where you can test inputs and get examples of the returned data.
+
+![image](https://user-images.githubusercontent.com/50344360/156276295-eca6e5df-0bfd-4f5a-b60f-66dc3491c6f5.png)
