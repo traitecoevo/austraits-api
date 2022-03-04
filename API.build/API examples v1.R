@@ -91,7 +91,7 @@ function(taxa = ""){
 
 
 ################################################################################
-# 2. count the number of taxa per trait
+# 2. Count the number of taxa per trait
 
 #* @apiDescription Possible values for traits are found at http://traitecoevo.github.io/austraits.build/articles/austraits_database_structure.html
 #* Return a count of unique species for any given trait name in the trait_name data field of AusTraits.
@@ -105,9 +105,7 @@ function(trait = ""){
     print("No trait name has been entered")
     
   }else{
-    
-function(trait){
-  
+
   
   # Counts of unique taxa (species) for the trait value entered
   x  = austraits$traits %>% 
@@ -130,7 +128,7 @@ function(trait){
    }
   }
  }
-}
+
 
 
 ################################################################################
@@ -180,7 +178,7 @@ function(taxa = ""){
   }
 }
 ################################################################################
-# 4. Presents a table of the combined traits and methods tables for a given taxa in csv format. 
+# 4. Returns a table of the combined traits and methods tables for a given taxa
 # Possible filters are listed.
 
 
@@ -191,7 +189,7 @@ function(taxa = ""){
 #* @param type_of_value:character e.g. mean, min,
 #* @get /trait-table
 
-function(res, taxa = "", collection = "", type_of_value = ""){
+function(res, taxa = "", type_of_collection = "", type_of_value = ""){
   
   
   # filter the data to the desired taxon name
@@ -205,7 +203,7 @@ function(res, taxa = "", collection = "", type_of_value = ""){
   
   # select the fields for the wide table format
   x3 %>% select(dataset_id, taxon_name, value, unit, value_type, date, collection_type) %>%
-         filter(str_detect(collection_type, collection)) %>% 
+         filter(str_detect(collection_type, type_of_collection)) %>% 
          filter(str_detect(value_type, type_of_value))
 
 }
@@ -216,7 +214,6 @@ function(res, taxa = "", collection = "", type_of_value = ""){
 #* @apiDescription 
 #* Return a full data table for given taxa for multiple species names as a csv file
 #* @serializer csv
-#* @param taxa_list:[object] list of taxa such as "Angophora costata", "Eucalyptus regnans"
 #* @post /trait-table-download-csv
 
 function(req, res){
@@ -224,8 +221,8 @@ function(req, res){
   # make taxa object = the taxa_list inside the request body
   taxa = req$body$taxa_list
 
-  #### 3. Make wide tables
   
+  #subset
   x1 = austraits$traits %>% filter(taxon_name %in% taxa) 
   
   # get the methods table of austraits
@@ -248,5 +245,12 @@ function(req, res){
 
 
 ################################################################################
+# Overlay the yaml file over the top for ease of testing and clarity. 
+# Anything in the yaml file that conflicts with the specifications above will overwrite them. 
 
+#* @plumber
 
+ function(pr){
+   pr %>% 
+    pr_set_api_spec(yaml::read_yaml("Austraits_API_test_1.yml"))
+ }

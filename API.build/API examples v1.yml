@@ -1,0 +1,101 @@
+# api-spec.yaml
+openapi: 3.0.0
+servers:
+  - description: Localhost
+    url: http://127.0.0.1:4993
+info:
+  description: This is a simple Plumber API with the spec defined in an external file
+  version: "1.0.0"
+  title: Simple Plumber
+
+paths:
+  /health-check:
+    get:
+      summary: "Determine if the API is running and listening as expected"
+      responses:
+       default:
+        description: Default response.
+      parameters: 
+  /trait-count:
+    get:
+      summary: "Returns the number of traits per taxa for any given species"
+      description: This function returns a sentence describing how many unique traits there are for any given taxa from the taxon_name data field in AusTraits., e.g. Eucalyptus saligna
+      responses:
+       default:      
+        description: Default response
+      parameters: 
+        - in: query
+          name: taxa
+          description: e.g. Eucalyptus saligna
+          required: false
+  /taxa-count:
+    get:
+      summary: "Returns the number of taxa we have data for per trait"
+      description: This function returns a sentence describing how many species there are for any given trait name in the trait_name data field of AusTraits. Possible values for traits are found at http://traitecoevo.github.io/austraits.build/articles/austraits_database_structure.html
+      responses:
+       default:      
+        description: Default response
+      parameters: 
+        - in: query
+          name: trait
+          description: e.g. leaf_length
+          required: false
+  /trait-summary:
+    get:
+      summary: "Returns the average trait value per trait for a given species"
+      description: This function returns a table of summarised trait data (a simple mean value for numerical traits and unique categorical trait values) for a given taxa from the taxon_name data field in AusTraits
+      responses:
+       default:      
+        description: Default response
+      parameters: 
+        - in: query
+          name: taxa
+          description: e.g. Angophora costata
+          required: false
+          schema:
+            type: string
+  /trait-table:
+    get:
+      summary: "Returns a table of the complete data available for a given taxa"
+      description: This function returns a wider table of raw trait data (the combined traits and methods tables) for a given taxa. The data can be further filtered by two other parameters - type_of_collection (collection_type in AusTraits) and type_of_value (value_type in AusTraits). Terms are string matched - you just need to enter part of the string to filter properly
+      responses:
+       default:      
+        description: Default response
+      parameters: 
+        - in: query
+          name: taxa
+          description: e.g. Angophora costata
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: type_of_collection
+          description: e.g. field, glasshouse
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: type_of_value
+          description: e.g. mean, min, max
+          required: false
+          schema:
+            type: string
+  /trait-table-download-csv:
+    post:
+      summary: "Returns a csv download of the complete data available for multiple taxa names" 
+      description: This function returns a download of the data for a list of taxa names in a csv file. You can trial different species names in the Swagger window, but default values are given for demonstration purposes
+      responses:
+       default: 
+        description: Default response
+      parameters: []
+      requestBody:
+        description: An array of primitives
+        required: true
+        content:
+         application/json:
+          schema:
+           type: object
+           properties:
+            taxa_list:
+              type: character
+              example: ["Eucalyptus pilularis", "Angophora hispida", "Corymbia gummifera"]
