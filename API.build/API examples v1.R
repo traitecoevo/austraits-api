@@ -13,9 +13,9 @@ library(tidyverse)
 
 
 #install.packages("remotes")
-#remotes::install_github("traitecoevo/austraits", build_vignettes = TRUE)
+remotes::install_github("traitecoevo/austraits", upgrades="never")
 library(austraits) 
-austraits <- load_austraits()
+austraits <- load_austraits(path="data/austraits", version="3.0.2")
 
 
 ################################################################################
