@@ -252,5 +252,5 @@ function(req, res){
 
  function(pr){
    pr %>% 
-    pr_set_api_spec(yaml::read_yaml("Austraits_API_test_1.yml"))
+    pr_set_api_spec(yaml::read_yaml("API examples v1.yml"))
  }
