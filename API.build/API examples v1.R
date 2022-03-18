@@ -8,9 +8,10 @@
 #install.packages("plumber")
 library(plumber)
 
-#install.packages("tidyverse")
-library(tidyverse)
-
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(readr)
 
 #install.packages("remotes")
 remotes::install_github("traitecoevo/austraits@api", upgrades="never")
