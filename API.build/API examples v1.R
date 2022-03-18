@@ -13,7 +13,7 @@ library(tidyverse)
 
 
 #install.packages("remotes")
-remotes::install_github("traitecoevo/austraits", upgrades="never")
+remotes::install_github("traitecoevo/austraits@api", upgrades="never")
 library(austraits) 
 austraits <- load_austraits(path="data/austraits", version="3.0.2")
 
