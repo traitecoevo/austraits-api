@@ -149,6 +149,7 @@ austraits_wide = as_wide_table(austraits)
 
 #* Health Check - Is the API running?
 #* @get /health-check
+#* @head /health-check
 
 status = function(){
   list(
