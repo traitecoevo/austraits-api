@@ -250,7 +250,7 @@ function(taxon = "", APNI_ID = ""){
   ###################### Make the numeric trait summary  ####################
   
   num_traits = data  %>% filter(!is.na(unit)) %>% select(taxon_name, trait_name, unit) %>% unique()
-  num_traits = num_traits[1:min(nrow(num_traits), 10),]
+  num_traits = num_traits[1:min(nrow(num_traits), 20),]
   #create a blank dataframe
   output1 = data.frame()
   
