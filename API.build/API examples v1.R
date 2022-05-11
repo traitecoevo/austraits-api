@@ -437,7 +437,7 @@ function(taxon = "", APNI_ID = ""){
   
   data = data %>% mutate_all(coalesce, "")
   
-  data = data[1:10,]
+  data = data[1:100,]
   
   filename = str_c("AusTraits_", data$taxon_name[1], "_",  gsub("\\:", "-", Sys.time()), ".csv")
   filename = gsub(" ", "_", filename)
