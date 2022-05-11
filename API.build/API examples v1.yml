@@ -4,7 +4,7 @@ servers:
   - description: Localhost
     url: http://127.0.0.1:4993
 info:
-  description: This is a series of example API endpoints that may be useful in making AusTraits more accessible to a wider audience 
+  description: This is a series of example API endpoints that may be useful in making AusTraits more accessible to a wider audience
   version: "1.0.0"
   title: AusTraits API
 
@@ -25,8 +25,12 @@ paths:
         description: Default response
       parameters:
         - in: query
-          name: taxa
+          name: taxon
           description: e.g. Eucalyptus saligna
+          required: false
+        - in: query
+          name: APNI_ID
+          description: e.g. 2912252 (For Eucalyptus saligna)
           required: false
   /taxa-count:
     get:
@@ -49,8 +53,14 @@ paths:
         description: Default response
       parameters:
         - in: query
-          name: taxa
-          description: e.g. Angophora costata
+          name: taxon
+          description: e.g. Eucalyptus saligna
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: APNI_ID
+          description: e.g. e.g. 2912252 (For Eucalyptus saligna)
           required: false
           schema:
             type: string
@@ -63,7 +73,7 @@ paths:
         description: Default response
       parameters:
         - in: query
-          name: taxa
+          name: taxon
           description: e.g. Angophora costata
           required: false
           schema:
@@ -82,19 +92,39 @@ paths:
             type: string
         - in: query
           name: tissue_type
-          description: e.g. stem, leaf, root, bark, whole plant, reproductive 
+          description: e.g. stem, leaf, root, bark, whole plant, reproductive
           required: false
           schema:
             type: string
         - in: query
           name: has_coordinates
-          description: only get data with coordinates e.g. Yes 
+          description: only get data with coordinates e.g. Yes
           required: false
           schema:
             type: string
         - in: query
           name: field_only
-          description: e.g. only get data that was collected in the field e.g. Yes 
+          description: e.g. only get data that was collected in the field e.g. Yes
+          required: false
+          schema:
+            type: string
+  /download-taxon-data:
+    get:
+      summary: "Downloads the csv of the raw AusTraits data used to make the trait summaries"
+      description: This function returns a table of the trait data for a given taxa from the taxon_name data field in AusTraits
+      responses:
+       default:
+        description: Default response
+      parameters:
+        - in: query
+          name: taxon
+          description: e.g. Eucalyptus saligna
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: APNI_ID
+          description: e.g. e.g. 2912252 (For Eucalyptus saligna)
           required: false
           schema:
             type: string
