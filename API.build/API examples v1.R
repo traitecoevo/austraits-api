@@ -236,9 +236,9 @@ function(taxon = "", APNI_ID = ""){
   
   # get austraits data for this taxa and the trait, remove NA values and make a table of the counts for each value
   x = data %>% filter(trait_name == cat_traits$trait_name[i] & is.na(trait_value)==F) %>% select(trait_value) %>% table() %>% as.data.frame()
-  
+  names(x) = c("trait_name", "Freq")
   # make a character string made up of each trait value, followed by the count in brackets and separated by ";"
-  y = paste0(str_c(x$., " (", x$Freq, ")"), collapse = "; ")
+  y = paste0(str_c(x$trait_name, " (", x$Freq, ")"), collapse = "; ")
   
   # make a row of data made up of the taxon name, the trait name and the trait value character above (y). The units will be blank.
   z = data.frame(taxon_name = taxon, trait_name = cat_traits$trait_name[i], trait_values = y)
