@@ -68,7 +68,7 @@ austraits_wide_means = austraits_wide %>%
                               "leaf_lifespan",                          "leaf_hairs_adult",                      
                               "root_shoot_ratio",                       "ploidy"          )) %>% 
                       filter(str_detect(sample_age_class, "adult")) %>% 
-                      filter(str_detect(sample_age_class, "field|literature|botanical_collection|"))
+                      filter(str_detect(collection_type, "field|literature|botanical_collection"))
 
 
 ################################################################################
@@ -249,7 +249,7 @@ function(taxon = "", APNI_ID = ""){
   
   ###################### Make the numeric trait summary  ####################
   
-  num_traits = data  %>% filter(!is.na(unit)) %>% select(taxon_name, trait_name, unit) %>% unique()
+  num_traits = data  %>% filter(!is.na(unit)) #%>% select(taxon_name, trait_name, unit) %>% unique()
   num_traits = num_traits[1:min(nrow(num_traits), 20),]
   #create a blank dataframe
   output1 = data.frame()
