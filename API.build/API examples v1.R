@@ -265,5 +265,7 @@ return(austraits_wide)
  function(pr){
    pr %>% 
     pr_set_api_spec(yaml::read_yaml("API examples v1.yml"))
+   # limits requests to about 50 species names, or a 6.5 megabyte file
+   options_plumber(maxRequestSize = getOption("plumber.maxRequestSize", 10000000000))
  }
 
