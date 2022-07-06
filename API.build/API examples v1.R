@@ -14,6 +14,7 @@ library(stringr)
 library(readr)
 library(purrr)
 #install.packages("remotes")
+
 #remotes::install_github("traitecoevo/austraits")
 library(austraits) 
 austraits <- load_austraits(path="data/austraits", version = get_version_latest())
@@ -24,6 +25,7 @@ ord = data.frame(trait_name = c("plant_growth_form",  "woodiness", "life_history
                                 "dispersal_syndrome", "dispersers", "reproductive_maturity", "reproductive_maturity_primary", "salt_tolerance", "inundation_tolerance","leaf_area","bud_bank_location","fruiting_time",
                                 "post_fire_recruitment","life_form","root_structure","germination","seed_storage_location","wood_density","fire_and_establishing","storage_organ",
                                 "serotiny","physical_defence","growth_habit","ploidy"))
+
 
 ord1 = data.frame(trait_name = c("sex_type","root_shoot_ratio", "soil_seedbank", "flower_colour","pollination_system","fruit_type" ,"fruit_fleshiness","fruit_dehiscence","seed_shape","seed_dry_mass", "genome_size", "leaf_length","leaf_width","leaf_margin","leaf_phenology",
                                  "spinescence","parasitic","dispersal_appendage","clonal_spread_mechanism","leaf_type","leaf_shape","leaf_arrangement","leaf_lifespan","seedling_first_leaf","leaf_N_per_dry_mass","leaf_dry_mass",
@@ -520,5 +522,7 @@ function(req, res){
  function(pr){
    pr %>% 
     pr_set_api_spec(yaml::read_yaml("API examples v1.yml"))
+   # limits requests to about 50 species names, or a 6.5 megabyte file
+   options_plumber(maxRequestSize = getOption("plumber.maxRequestSize", 10000000000))
  }
 

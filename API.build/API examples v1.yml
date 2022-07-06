@@ -85,8 +85,10 @@ paths:
           schema:
             type: string
         - in: query
+
           name: field_only
           description: e.g. only get data that was collected in the field e.g. yes
+
           required: false
           schema:
             type: string
@@ -133,14 +135,18 @@ paths:
         description: Default response
       parameters:
         - in: query
+
           name: taxon
           description: e.g. Eucalyptus saligna
+
           required: false
           schema:
             type: string
         - in: query
+
           name: APNI_ID
           description: e.g. e.g. 2912252 (For Eucalyptus saligna)
+
           required: false
           schema:
             type: string
@@ -175,4 +181,6 @@ paths:
            properties:
             taxa_list:
               type: character
+
               example: ["Acacia aneura","Acacia rostellifera","Acacia tetragonophylla"]
+
