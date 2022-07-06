@@ -119,8 +119,11 @@ paths:
             type: object
             properties:
              taxa_list:
-               type: character
-               example: ["Acacia aneura","Acacia rostellifera","Acacia tetragonophylla"]
+                type: character
+                example: ["Acacia aneura","Acacia rostellifera","Acacia tetragonophylla"]
+            trait_list:
+                type: character
+                example: ["leaf_length", "leaf_width"]
   /download-taxon-data:
     get:
       summary: "Downloads the csv of the raw AusTraits data used to make the trait summaries"
@@ -172,4 +175,4 @@ paths:
            properties:
             taxa_list:
               type: character
-              example: ["Acacia aneura","Acacia rostellifera","Acacia tetragonophylla","Acanthocarpus preissii","Alphitonia petriei","Banksia serrata","Conostylis candicans subsp. calcicola","Eucalyptus miniata","Eucalyptus obliqua","Eucalyptus tetrodonta","Hibbertia hypericoides","Litsea leefeana","Melaleuca systena","Mesomelaena pseudostygia","Pittosporum undulatum","Pomaderris reperta","Pultenaea juniperina"]
+              example: ["Acacia aneura","Acacia rostellifera","Acacia tetragonophylla"]

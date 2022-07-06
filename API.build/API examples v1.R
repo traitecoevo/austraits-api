@@ -426,14 +426,18 @@ function(req, res, has_coordinates = "", field_only = ""){
   
   # make taxa object = the taxa_list inside the request body
   taxa = req$body$taxa_list
-  
+  trait = req$body$trait_list
   
   #subset
   x1 = austraits_wide %>% filter(taxon_name %in% taxa) %>% filter(str_detect(sample_age_class, "adult"))
   
+  x1 = x1 %>% filter(trait_name %in% trait)
+  
   if (has_coordinates == "yes"){
+    
     y1 = x1 %>% filter(is.na(`longitude (deg)`) == F)
-  }else{
+  
+    }else{
     y1 = x1
   }
   
