@@ -25,8 +25,12 @@ paths:
         description: Default response
       parameters:
         - in: query
-          name: taxa
+          name: taxon
           description: e.g. Eucalyptus saligna
+          required: false
+        - in: query
+          name: APNI_ID
+          description: e.g. 2912252 (For Eucalyptus saligna)
           required: false
   /taxa-count:
     get:
@@ -49,12 +53,18 @@ paths:
         description: Default response
       parameters:
         - in: query
-          name: taxa
-          description: e.g. Angophora costata
+          name: taxon
+          description: e.g. Eucalyptus saligna
           required: false
           schema:
             type: string
-  /trait-table:
+        - in: query
+          name: APNI_ID
+          description: e.g. e.g. 2912252 (For Eucalyptus saligna)
+          required: false
+          schema:
+            type: string
+  /taxon-data:
     get:
       summary: "Returns a table of the complete data available for a given taxa"
       description: This function returns a wider table of raw trait data (the combined traits and methods tables) for a given taxa. The data can be further filtered by two other parameters - type_of_collection (collection_type in AusTraits) and type_of_value (value_type in AusTraits). Terms are string matched - you just need to enter part of the string to filter properly
@@ -63,29 +73,92 @@ paths:
         description: Default response
       parameters:
         - in: query
-          name: taxa
+          name: taxon
           description: e.g. Angophora costata
           required: false
           schema:
             type: string
         - in: query
-          name: type_of_value
-          description: e.g. raw, literature, expert
+          name: has_coordinates
+          description: only get data with coordinates e.g. yes
           required: false
           schema:
             type: string
         - in: query
-          name: age_class
-          description: e.g. adult, sapling, seedling
+
+          name: field_only
+          description: e.g. only get data that was collected in the field e.g. yes
+
+          required: false
+          schema:
+            type: string
+  /taxa-data:
+      post:
+        summary: "Returns a table of the complete data available for multiple taxa"
+        description: This function returns a wider table of raw trait data (the combined traits and methods tables) for multiple taxa. The data can be further filtered by two other parameters - type_of_collection (collection_type in AusTraits) and type_of_value (value_type in AusTraits). Terms are string matched - you just need to enter part of the string to filter properly
+        responses:
+         default:
+          description: Default response
+        parameters:
+          - in: query
+            name: has_coordinates
+            description: only get data with coordinates e.g. yes
+            required: false
+            schema:
+              type: string
+          - in: query
+            name: field_only
+            description: e.g. only get data that was collected in the field e.g. yes
+            required: false
+            schema:
+              type: string
+        requestBody:
+         description: A named array of species names
+         required: true
+         content:
+          application/json:
+           schema:
+            type: object
+            properties:
+             taxa_list:
+                type: character
+                example: ["Acacia aneura","Acacia rostellifera","Acacia tetragonophylla"]
+            trait_list:
+                type: character
+                example: ["leaf_length", "leaf_width"]
+  /download-taxon-data:
+    get:
+      summary: "Downloads the csv of the raw AusTraits data used to make the trait summaries"
+      description: This function returns a table of the trait data for a given taxa from the taxon_name data field in AusTraits
+      responses:
+       default:
+        description: Default response
+      parameters:
+        - in: query
+
+          name: taxon
+          description: e.g. Eucalyptus saligna
+
           required: false
           schema:
             type: string
         - in: query
-          name: tissue_type
-          description: e.g. stem, leaf, root, bark, whole plant, reproductive
+
+          name: APNI_ID
+          description: e.g. e.g. 2912252 (For Eucalyptus saligna)
+
           required: false
           schema:
             type: string
+
+  /download-taxa-data:
+    post:
+      summary: "Returns a csv download of the complete data available for multiple taxa names"
+      description: This function returns a download of the data for a list of taxa names in a csv file. You can trial different species names in the Swagger window, but default values are given for demonstration purposes
+      responses:
+       default:
+        description: Default response
+      parameters:
         - in: query
           name: has_coordinates
           description: only get data with coordinates e.g. Yes
@@ -98,14 +171,6 @@ paths:
           required: false
           schema:
             type: string
-  /trait-table-download-csv:
-    post:
-      summary: "Returns a csv download of the complete data available for multiple taxa names"
-      description: This function returns a download of the data for a list of taxa names in a csv file. You can trial different species names in the Swagger window, but default values are given for demonstration purposes
-      responses:
-       default:
-        description: Default response
-      parameters: []
       requestBody:
         description: A named array of species names
         required: true
@@ -116,11 +181,6 @@ paths:
            properties:
             taxa_list:
               type: character
-              example: ['Callitris monticola','Callitris muelleri','Callitris oblonga subsp. corangensis','Callitris pyramidalis','Callitris rhomboidea','Callitris roei','Callitris preissii','Callitris verrucosa','Calocephalus citreus','Calocephalus platycephalus','Calothamnus','Calothamnus blepharospermus','Calothamnus chrysanthereus','Calothamnus gilesii','Calothamnus pinifolius','Calothamnus quadrifidus','Calothamnus rupestris','Calothamnus sanguineus','Calothamnus torulosus','Calothamnus tuberosus','Calotis cuneifolia','Calotis dentex','Calotis erinacea','Calotis lappulacea','Calotis latiuscula','Calotis plumulifera','Calotis scabiosifolia var. integrifolia','Psychrophila introloba','Calytrix desolata','Calytrix leschenaultii','Calytrix sapphirina','Calytrix surdiviperana','Calytrix tetragona' ]
-  /all-austraits:
-    get:
-      summary: "Return all of austraits database as a json object"
-      responses:
-       default:
-        description: Default response.
-      parameters: []
+
+              example: ["Acacia aneura","Acacia rostellifera","Acacia tetragonophylla"]
+
