@@ -15,7 +15,7 @@ library(readr)
 library(purrr)
 #install.packages("remotes")
 
-#remotes::install_github("traitecoevo/austraits")
+remotes::install_github("traitecoevo/austraits")
 library(austraits) 
 austraits <- load_austraits(path="data/austraits", version = get_version_latest())
 
