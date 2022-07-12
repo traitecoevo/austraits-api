@@ -493,7 +493,7 @@ function(req, res){
       summarise(datapoints = n())
     
     
-    if(nrow(x1) > 300000){
+    if(nrow(x1) > 20000){
       
       a = "Your selection is too large, please narrow your search"
       
@@ -593,7 +593,7 @@ function(req, res){
   # remove NAs
   x =  x %>% mutate_all(coalesce, "")
   
-  if(nrow(x) > 200000){
+  if(nrow(x) > 100000){
     
     x = data.frame(Error = c("The file size is too large. The entire AusTraits database can be downloaded from the AusTraits webpage", "https://zenodo.org/record/5112001"))
     
@@ -621,6 +621,6 @@ function(req, res){
    pr %>% 
     pr_set_api_spec(yaml::read_yaml("API examples v1.yml"))
    # limits requests to about 50 species names, or a 6.5 megabyte file
-   options_plumber(maxRequestSize = getOption("plumber.maxRequestSize", 10000000000))
+   options_plumber(maxRequestSize = getOption("plumber.maxRequestSize", 10000000000000))
  }
 
