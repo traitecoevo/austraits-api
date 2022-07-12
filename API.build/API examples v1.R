@@ -16,35 +16,61 @@ library(purrr)
 #install.packages("remotes")
 
 remotes::install_github("traitecoevo/austraits")
+
 library(austraits) 
 austraits <- load_austraits(path="data/austraits", version = get_version_latest())
 
 austraits_wide = as_wide_table(austraits)
 
+
+############################# ALA trait summary prep ####################################
+
+# Traits marked as definitely of interest
 ord = data.frame(trait_name = c("plant_growth_form",  "woodiness", "life_history", "flowering_time", "plant_height", "leaf_compoundness", "fire_response","photosynthetic_pathway",
                                 "dispersal_syndrome", "dispersers", "reproductive_maturity", "reproductive_maturity_primary", "salt_tolerance", "inundation_tolerance","leaf_area","bud_bank_location","fruiting_time",
                                 "post_fire_recruitment","life_form","root_structure","germination","seed_storage_location","wood_density","fire_and_establishing","storage_organ",
                                 "serotiny","physical_defence","growth_habit","ploidy"))
 
-
+# Traits marked as possibly of interest
 ord1 = data.frame(trait_name = c("sex_type","root_shoot_ratio", "soil_seedbank", "flower_colour","pollination_system","fruit_type" ,"fruit_fleshiness","fruit_dehiscence","seed_shape","seed_dry_mass", "genome_size", "leaf_length","leaf_width","leaf_margin","leaf_phenology",
                                  "spinescence","parasitic","dispersal_appendage","clonal_spread_mechanism","leaf_type","leaf_shape","leaf_arrangement","leaf_lifespan","seedling_first_leaf","leaf_N_per_dry_mass","leaf_dry_mass",
                                  "leaf_dry_matter_content","leaf_P_per_dry_mass","leaf_C_per_dry_mass","leaf_K_per_dry_mass","photosynthetic_rate_per_area_saturated","leaf_work_to_punch","bark_thickness" ,"vessel_density","leaf_tannin_per_dry_mass",
                                  "chlorophyll_per_dry_mass"))
+
+# Bind them together
 ord = rbind(ord, ord1)
 
+# Add the ranking
 ord$ranking = 1:length(ord$trait_name)
 
+# Filter the data
 austraits_wide_means = austraits_wide %>%
                       filter(trait_name %in% ord$trait_name) %>%
                       filter(str_detect(sample_age_class, "adult")) %>% 
                       filter(str_detect(collection_type, "field|literature|botanical_collection"))
-  
+
+# Merge in the rankings
 austraits_wide_means = merge(austraits_wide_means, ord, by = "trait_name", all.x = T)
 
-# Add in a link to the definition
+# Add in a link to the trait definition
 austraits_wide_means = austraits_wide_means %>% mutate(definition = str_c("https://traitecoevo.github.io/austraits.build/articles/Trait_definitions.html#", trait_name ))
+
+
+######################### Ecocommons trait data prep ############################
+
+located_data = austraits_wide %>% 
+               filter(!is.na(`longitude (deg)`)) %>% 
+               filter(str_detect(sample_age_class, "adult")) %>% 
+               filter(str_detect(collection_type, "field|literature|botanical_collection")) %>% 
+               mutate(data_type = ifelse(is.na(unit), "categorical", "numeric")) # %>% 
+              #remove mins and maxes?
+              #filter(str_detect(value_type, "_min|_max"))
+
+# a reference for later
+trait_type = located_data %>% select(trait_name, unit) %>% unique() %>% mutate(data_type = ifelse(is.na(unit), "categorical", "numeric")) %>% select(-unit)
 ################################################################################
+
+
 # We are ready for the API
 
 ################################################################################
@@ -65,7 +91,7 @@ status = function(){
 # Log some information about the incoming request
 
 # The @filter function in r plumber allows some action to be completed 
-# before the incoming request is passed on (using plumber::forward()) to the relevant @get function. 
+# before the incoming request is passed on (using plumber::forward()) to the relevant @get or @post function. 
 # This example logs some information about the incoming request, the time, the path and the remote address 
 # The @filter function is also a way to implement an authentication step before data can be accessed.
 
@@ -80,6 +106,7 @@ function(req){
 }
 
 ################################################################################
+
 # 1. count the number of traits per taxa by text name
 
 #* @apiDescription 
@@ -93,19 +120,23 @@ function(taxon = "", APNI_ID = ""){
 
   # convert any APNI ID queries into a taxon_name string
     if (taxon != ""){
-    taxon = taxon
+    
+      taxon = taxon
     
     }else if (APNI_ID != ""){
     
-    taxon = unique(austraits_wide$taxon_name[grepl(as.character(APNI_ID), austraits_wide$acceptedNameUsageID)])
-    }
+     taxon = unique(austraits_wide$taxon_name[grepl(as.character(APNI_ID), austraits_wide$acceptedNameUsageID)])
+    
+     }
     
     
    #Number of traits in AusTraits for this species
     
     x = austraits_wide %>% 
+    
     #get the rows where the taxon_name field is equal to the entered value
     filter(taxon_name == taxon) %>% 
+    
     #select and count the number of unique trait_name values
     select(trait_name) %>% 
     distinct() %>% count() %>% unlist() %>% as.integer()
@@ -124,60 +155,88 @@ function(taxon = "", APNI_ID = ""){
     z = x - x1
       
 
-    
-  
+  #Create the responses
+  # If the summary contains traits...
   if(x1 != 0){
-    a = list(y, x1, z, paste0("There are ", x1, " traits available for ", y, ", with data for ", z, " further traits in the AusTraits database"))
-    names(a) = c("taxon", "summary", "AusTraits", "explanation")
-    return(a)
+    
+      a = list(y, x1, z, paste0("There are ", x1, " traits available for ", y, ", with data for ", z, " further traits in the AusTraits database"))
+    
+      names(a) = c("taxon", "summary", "AusTraits", "explanation")
+    
+      return(a)
   
+  # If the summary has no traits but some exist in AusTraits
+   }else if(x1 == 0 & x != 0){
+    
+      a = list(y, x1, z, print(y, " has data for ", x, " traits in the AusTraits database"))
+      
+      names(a) = c("taxon", "summary", "AusTraits", "explanation")
+      
+      return(a)
+  
+  # If there is no data for the taxon in AusTraits
   }else{
     
-    return(list(0, print("No trait data can be found for this taxon in AusTraits")))
+      a = list(y, x1, z, print("There is currently no data for ", y, " in the AusTraits database"))
+    
+      names(a) = c("taxon", "summary", "AusTraits", "explanation")
+    
+      return(a)
+    
   }
  }
 
 
-
-
 ################################################################################
+
 # 2. Count the number of taxa per trait
 
 #* @apiDescription Possible values for traits are found at http://traitecoevo.github.io/austraits.build/articles/austraits_database_structure.html
 #* Return a count of unique species for any given trait name in the trait_name data field of AusTraits.
-#* @param trait e.g. leaf_length
-#* @get /taxa-count
+#* @post /taxa-count
 
-function(trait = ""){
+function(req, res){
   
-  if (trait == "") {
-    
-    print("No trait name has been entered")
-    
-  }else{
-
+  # make traits object = the traits inside the request body
   
-  # Counts of unique taxa (species) for the trait value entered
-  x  = austraits$traits %>% 
-    
-    filter(trait_name == trait) %>% 
-    
-    select(taxon_name) %>% 
-    
-    distinct() %>% count() %>% unlist()
+  traits = req$body$traits
   
-  
-  if (x != 0){
+  if (length(traits) == 0){
     
-    list(x, paste0("There are ", x, " species that have data for the ", trait, " trait."))
+    traits = unique(located_data$trait_name)
     
-  }else{
-    
-    list(x, "No data can be found for this trait name. Check for existing trait names at http://traitecoevo.github.io/austraits.build/articles/Trait_definitions.html")
-    
-   }
   }
- }
+  
+  #subset the data to the taxa and traits
+  
+  x = located_data %>% 
+    filter(trait_name %in% traits)
+  
+  if (nrow(x) > 0) {
+    
+    # Counts of unique taxa (species) for the trait value entered
+    x1 = x %>%
+      
+      select(taxon_name, trait_name) %>% 
+      
+      group_by(trait_name) %>% 
+      
+      summarise(taxa = n())
+    
+    x1 = x1 %>% mutate(definition = str_c("https://traitecoevo.github.io/austraits.build/articles/Trait_definitions.html#", trait_name)) %>% 
+      select(trait_name, definition, taxa)
+    
+    x2 = merge(x1, trait_type, by = "trait_name")
+    
+    return(x2)
+  
+    }else{
+    
+    return("Choose at least one trait and/or at least one taxon name in AusTraits")
+    
+  }
+  
+}
 
 
 
@@ -198,13 +257,15 @@ function(taxon = "", APNI_ID = ""){
     data = austraits_wide_means %>% filter(taxon_name == taxon)
     
   }else if (APNI_ID != ""){
-  ############################ manipulate austraits to prepare for averages #################
     
     data = austraits_wide_means %>% filter(str_detect(acceptedNameUsageID, as.character(APNI_ID)))
-    #only select adult plants grown outdoors and not experimental data. Or perhaps a list of set traits that can be applied to the whole species
+
     taxon = data$taxon_name[1]
-  }
     
+  }
+ 
+  ############################ manipulate austraits to prepare for averages #################
+  
   data$value_type[which(is.na(data$value_type))] = "unknown"
     
   
@@ -235,8 +296,9 @@ function(taxon = "", APNI_ID = ""){
   
   ###################### Make the numeric trait summary  ####################
   
+  # Create a reference list of taxon-trait combinations and arrange them by ranking
   num_traits = data  %>% filter(!is.na(unit)) %>% select(taxon_name, trait_name, definition, unit, ranking) %>% arrange(ranking) %>% unique()
-  #num_traits = num_traits[1:min(nrow(num_traits), 20),]
+
   #create a blank dataframe
   output1 = data.frame()
   
@@ -244,36 +306,35 @@ function(taxon = "", APNI_ID = ""){
   for (i in 1:length(num_traits$trait_name)){
     
   # get the data for each numeric trait, group by the value type and find the mean
-    # remove wrongly entered data and get numeric data only data only
-    x2 = data %>% filter(taxon_name == taxon) %>%
-      filter(trait_name == num_traits$trait_name[i]) %>% 
-      filter(!is.na(value_type)) %>% 
-      filter(!is.na(unit)) %>% 
-      mutate(trait_value = as.numeric(trait_value)) %>% 
-      filter(!is.na(trait_value))
+  # remove wrongly entered data and get numeric data only data only
+    a = data %>% filter(taxon_name == taxon) %>%
+        filter(trait_name == num_traits$trait_name[i]) %>% 
+        filter(!is.na(value_type)) %>% 
+        filter(!is.na(unit)) %>% 
+        mutate(trait_value = as.numeric(trait_value)) %>% 
+        filter(!is.na(trait_value))
     
     # create a dataset of unknown sites
-    x1 = x2 %>% filter((value_type %in% c("unknown", "raw_value") & is.na(site_name))) 
+    b = a %>% filter((value_type %in% c("unknown", "raw_value") & is.na(site_name))) 
     
     # remove raw_value values without a site name
-    x2 = x2 %>% filter(!(value_type %in% c("unknown", "raw_value") & is.na(site_name)))
+    a = a %>% filter(!(value_type %in% c("unknown", "raw_value") & is.na(site_name)))
     
     # split the data into a list of dataframes based on the value type
-    x_list <- split(x2 , f = x2$value_type)
+    x_list <- split(a , f = a$value_type)
     
     
-    #########################################################
+    ############################################################################
     
     # calculate for individual_mean and raw_value and unknown
     r_i_u = rbind(x_list[["raw_value"]], x_list[["individual_mean"]], x_list[["unknown"]])  %>% group_by(dataset_id, site_name) %>% summarise(mean = mean(trait_value), min = NA, max = NA)
 
     
     # Calculate for raw_value without sites
-    raw_value1 = x1 %>% group_by(dataset_id) %>% summarise( mean = mean(trait_value), min = NA, max = NA) %>% mutate(site_name = NA) %>% select(dataset_id, site_name, mean, min, max)
+    raw_value1 = b %>% group_by(dataset_id) %>% summarise( mean = mean(trait_value), min = NA, max = NA) %>% mutate(site_name = NA) %>% select(dataset_id, site_name, mean, min, max)
 
     
     # Now the expert mins and maxes
-    
     expert = rbind(x_list[["expert_min"]], x_list[["expert_max"]])
     
     # make an average if a range is given
@@ -340,9 +401,7 @@ function(taxon = "", APNI_ID = ""){
 
     }
     
-    # Because I'm considering the means of sites in the max and min, I need to remove any observations where the mean is the same as the max or min
-  
-    
+    # stick it to the previous observation
     output1 = rbind(output1, overall_mean)
     
     # clean it up for presentation
@@ -351,13 +410,13 @@ function(taxon = "", APNI_ID = ""){
     output1$mean = gsub("\\-Inf|Inf", "", output1$mean)
     
    
-    
-    # I'm (incorrectly) rounding to 3 significant figures over all traits. A more sophisticated fucntion is needed
+    # I'm (incorrectly) rounding to 3 significant figures over all traits. A more sophisticated function is needed
     output1$mean = signif(as.numeric(output1$mean), 3)
     
     
   }
   
+  ################################## Final changes before sending ##################
 
   # More cleaning for presentation
   output1 = pivot_wider(output1, names_from = mean_type, values_from = mean )
@@ -386,74 +445,88 @@ function(taxon = "", APNI_ID = ""){
   }
 
 
-################################################################################
-# 4.1 Returns a table of the combined traits and methods tables for a given taxa
-# Possible filters are listed.
-
-
-#* @get /taxon-data
-
-function(res, taxon = "", has_coordinates = "", field_only = ""){
-  
-  
-  y = austraits_wide  %>%
-    filter(taxon_name == taxon) %>% filter(str_detect(sample_age_class, "adult"))
-
- 
-    if (has_coordinates == "yes"){
-      y1 = y %>% filter(is.na(`longitude (deg)`) == F)
-    }else{
-      y1 = y
-    }
-  
-    if (field_only == "yes"){
-     y2 = y1 %>%  filter(str_detect(collection_type, "field"))
-    }else{
-      y2 = y1
-    }
-  
-  return(y2)
-
-}
 
 ################################################################################
-# 5. Post a list of species names and return a full data table of multiple species 
+
+# 4. Post a list of species names and trait names and return a full data table of the prepped data observations 
 
 #* @apiDescription 
-#* Return a full data table for given taxa for multiple species names 
+#* Return a full data table for multiple species names and traits 
 
-#* @post /taxa-data
+#* @post /trait-data
 
-function(req, res, has_coordinates = "", field_only = ""){
+function(req, res){
   
-  # make taxa object = the taxa_list inside the request body
-  taxa = req$body$taxa_list
-  trait = req$body$trait_list
+  # make taxa and traits objects = the taxa and traits inside the request body
   
-  #subset
-  x1 = austraits_wide %>% filter(taxon_name %in% taxa) %>% filter(str_detect(sample_age_class, "adult"))
+  taxa = req$body$taxa
+  traits = req$body$traits
   
-  x1 = x1 %>% filter(trait_name %in% trait)
-  
-  if (has_coordinates == "yes"){
+  if (length(taxa) == 0){
     
-    y1 = x1 %>% filter(is.na(`longitude (deg)`) == F)
+    taxa = unique(located_data$taxon_name)
+    
+  }
   
+  if (length(traits) == 0){
+    
+    traits = unique(located_data$trait_name)
+    
+  }
+  
+  #subset the data to the taxa and traits
+  
+  x = located_data %>% 
+       filter(taxon_name %in% taxa) %>% 
+       filter(trait_name %in% traits)
+  
+  # Make a second table telling the user how many observations per species
+  if (nrow(x) > 0) {
+    
+    # Counts of unique taxa (species) for the trait value entered
+    x1 = x %>%
+      
+      select(taxon_name, trait_name) %>% 
+      
+      group_by(taxon_name, trait_name) %>% 
+      
+      summarise(datapoints = n())
+    
+    
+    if(nrow(x1) > 10000){
+      
+      a = "Your selection is too large, please narrow your search"
+      
+      return(a)
+      
     }else{
-    y1 = x1
-  }
-  
-  if (field_only == "yes"){
-    y2 = y1 %>%  filter(str_detect(collection_type, "field"))
+    
+    x1 = x1 %>% mutate(definition = str_c("https://traitecoevo.github.io/austraits.build/articles/Trait_definitions.html#", trait_name)) %>% 
+      select(taxon_name, trait_name, definition, datapoints)
+    
+    
+    x2 = list(x, x1)
+    
+    names(x2) = c("data", "summary")
+    
+    return(x2)
+    
+    }
+    
   }else{
-    y2 = y1
+    
+    return("Choose at least one trait and/or at least one taxon name in AusTraits")
+    
   }
   
-  return(y2)
 }
 
+################################################################################
+# Make another endpoint for guessing the start of the species name
+
+
 #################################################################################
-# 4.2 Returns a table of the raw data used to calculate the species means
+# 5. Returns a table of the raw data used to calculate the species means
 #* @param taxon e.g. Angophora costata
 #* @param APNI_ID e.g. 2912252 (For Eucalyptus saligna)
 #* @serializer csv
@@ -469,45 +542,74 @@ function(taxon = "", APNI_ID = ""){
   }else if (APNI_ID != ""){
     
     data = austraits_wide %>% filter(str_detect(acceptedNameUsageID, as.character(APNI_ID)))
-  }
+  
+    }
   
   data = data %>% mutate_all(coalesce, "")
   
   
   filename = str_c("AusTraits_", data$taxon_name[1], "_",  gsub("\\:", "-", Sys.time()), ".csv")
   filename = gsub(" ", "_", filename)
+  
   #convert the subset to a csv
+  
   as_attachment(data, filename)
   
 }
 
 #################################################################################
 
-# 5. Post a list of species names and return a full data table of multiple species as a csv file
+# 6. Post a list of species names and return a full data table of multiple species as a csv file
 
 #* @apiDescription 
 #* Return a full data table for given taxa for multiple species names as a csv file
 #* @serializer csv
-#* @post /download-taxa-data
+#* @post /download-trait-data
 
 function(req, res){
   
   # make taxa object = the taxa_list inside the request body
-  taxa = req$body$taxa_list
-
+  taxa = req$body$taxa
+  traits = req$body$traits
   
-  #subset
-  x1 = austraits_wide %>% filter(taxon_name %in% taxa)
-
-  x1 =  x1 %>% mutate_all(coalesce, "")
+  # 
+  if (length(taxa) == 0){
+    
+    taxa = unique(austraits_wide$taxon_name)
+    
+  }
   
+  if (length(traits) == 0){
+    
+    traits = unique(austraits_wide$trait_name)
+    
+  }
   
+  # subset
+  x = austraits_wide %>% 
+    filter(taxon_name %in% taxa) %>% 
+    filter(trait_name %in% traits)
+  
+  # remove NAs
+  x =  x %>% mutate_all(coalesce, "")
+  
+  if(nrow(x) > 20000){
+    
+    x = list("The file size is too large. The entire AusTraits database can be downloaded from the AusTraits webpage", "https://zenodo.org/record/5112001")
+    
+    names(x) = c("text", "url")
+    
+    print(x)
+    
+  }else{
+    
   filename = str_c("AusTraits_", gsub("\\:", "-", Sys.time()), ".csv")
   filename = gsub(" ", "_", filename)
-  #convert the subset to a csv
-  as_attachment(x1, filename)
- 
   
+  #convert the subset to a csv
+  as_attachment(x, filename)
+ 
+  }
 }
 
 

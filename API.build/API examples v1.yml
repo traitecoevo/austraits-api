@@ -33,17 +33,23 @@ paths:
           description: e.g. 2912252 (For Eucalyptus saligna)
           required: false
   /taxa-count:
-    get:
-      summary: "Returns the number of taxa we have data for per trait"
-      description: This function returns a sentence describing how many species there are for any given trait name in the trait_name data field of AusTraits. Possible values for traits are found at http://traitecoevo.github.io/austraits.build/articles/austraits_database_structure.html
-      responses:
-       default:
-        description: Default response
-      parameters:
-        - in: query
-          name: trait
-          description: e.g. leaf_length
-          required: false
+      post:
+        summary: "Returns the number of unique taxa per trait"
+        description: This function returns an array of traits and the number of unique species that have data for each trait specified. Possible values for traits are found at http://traitecoevo.github.io/austraits.build/articles/austraits_database_structure.html
+        responses:
+         default:
+          description: Default response
+        requestBody:
+          description: A named array of trait names
+          required: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                         traits:
+                          type: array
+                          example: ["seed_mass","seed_length","seed_volume"]
   /trait-summary:
     get:
       summary: "Returns the average trait value per trait for a given species"
@@ -64,68 +70,29 @@ paths:
           required: false
           schema:
             type: string
-  /taxon-data:
-    get:
-      summary: "Returns a table of the complete data available for a given taxa"
-      description: This function returns a wider table of raw trait data (the combined traits and methods tables) for a given taxa. The data can be further filtered by two other parameters - type_of_collection (collection_type in AusTraits) and type_of_value (value_type in AusTraits). Terms are string matched - you just need to enter part of the string to filter properly
-      responses:
-       default:
-        description: Default response
-      parameters:
-        - in: query
-          name: taxon
-          description: e.g. Angophora costata
-          required: false
-          schema:
-            type: string
-        - in: query
-          name: has_coordinates
-          description: only get data with coordinates e.g. yes
-          required: false
-          schema:
-            type: string
-        - in: query
 
-          name: field_only
-          description: e.g. only get data that was collected in the field e.g. yes
-
-          required: false
-          schema:
-            type: string
-  /taxa-data:
+  /trait-data:
       post:
-        summary: "Returns a table of the complete data available for multiple taxa"
+        summary: "Returns a table of the complete data available for multiple selected taxa and traits"
         description: This function returns a wider table of raw trait data (the combined traits and methods tables) for multiple taxa. The data can be further filtered by two other parameters - type_of_collection (collection_type in AusTraits) and type_of_value (value_type in AusTraits). Terms are string matched - you just need to enter part of the string to filter properly
         responses:
          default:
           description: Default response
-        parameters:
-          - in: query
-            name: has_coordinates
-            description: only get data with coordinates e.g. yes
-            required: false
-            schema:
-              type: string
-          - in: query
-            name: field_only
-            description: e.g. only get data that was collected in the field e.g. yes
-            required: false
-            schema:
-              type: string
+        parameters: []
         requestBody:
-         description: A named array of species names
-         required: true
-         content:
-          application/json:
-           schema:
-            type: object
-            properties:
-             taxa_list:
-                type: character
-                example: ["Acacia aneura","Acacia rostellifera","Acacia tetragonophylla"]
-            trait_list:
-                type: character
-                example: ["leaf_length", "leaf_width"]
+          description: A named array of species names
+          required: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                         taxa:
+                          type: array
+                          example: ["Acacia aneura","Acacia rostellifera","Acacia tetragonophylla"]
+                         traits:
+                          type: array
+                          example: ["leaf_length", "leaf_width"]
   /download-taxon-data:
     get:
       summary: "Downloads the csv of the raw AusTraits data used to make the trait summaries"
@@ -135,52 +102,37 @@ paths:
         description: Default response
       parameters:
         - in: query
-
           name: taxon
           description: e.g. Eucalyptus saligna
-
           required: false
           schema:
             type: string
         - in: query
-
           name: APNI_ID
           description: e.g. e.g. 2912252 (For Eucalyptus saligna)
-
           required: false
           schema:
             type: string
 
-  /download-taxa-data:
-    post:
-      summary: "Returns a csv download of the complete data available for multiple taxa names"
-      description: This function returns a download of the data for a list of taxa names in a csv file. You can trial different species names in the Swagger window, but default values are given for demonstration purposes
-      responses:
-       default:
-        description: Default response
-      parameters:
-        - in: query
-          name: has_coordinates
-          description: only get data with coordinates e.g. Yes
-          required: false
-          schema:
-            type: string
-        - in: query
-          name: field_only
-          description: e.g. only get data that was collected in the field e.g. Yes
-          required: false
-          schema:
-            type: string
-      requestBody:
-        description: A named array of species names
-        required: true
-        content:
-         application/json:
-          schema:
-           type: object
-           properties:
-            taxa_list:
-              type: character
-
-              example: ["Acacia aneura","Acacia rostellifera","Acacia tetragonophylla"]
-
+  /download-trait-data:
+       post:
+        summary: "Returns a csv download of the complete data available for multiple taxa names and traits"
+        description: This function returns a download of the data for a list of taxa names and traits. You can trial different species names in the Swagger window, but default values are given for demonstration purposes
+        responses:
+         default:
+          description: Default response
+        parameters: []
+        requestBody:
+          description: A named array of species names and a named array of trait names
+          required: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                         taxa:
+                          type: array
+                          example: ["Acacia aneura","Acacia rostellifera","Acacia tetragonophylla"]
+                         traits:
+                          type: array
+                          example: ["leaf_length", "leaf_width"]
