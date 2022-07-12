@@ -493,7 +493,7 @@ function(req, res){
       summarise(datapoints = n())
     
     
-    if(nrow(x1) > 10000){
+    if(nrow(x1) > 300000){
       
       a = "Your selection is too large, please narrow your search"
       
@@ -593,13 +593,9 @@ function(req, res){
   # remove NAs
   x =  x %>% mutate_all(coalesce, "")
   
-  if(nrow(x) > 20000){
+  if(nrow(x) > 200000){
     
-    x = list("The file size is too large. The entire AusTraits database can be downloaded from the AusTraits webpage", "https://zenodo.org/record/5112001")
-    
-    names(x) = c("text", "url")
-    
-    print(x)
+    x = data.frame(Error = c("The file size is too large. The entire AusTraits database can be downloaded from the AusTraits webpage", "https://zenodo.org/record/5112001"))
     
   }else{
     
