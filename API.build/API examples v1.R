@@ -493,7 +493,7 @@ function(req, res){
       summarise(datapoints = n())
     
     
-    if(nrow(x1) > 20000){
+    if(nrow(x1) > 300000){
       
       a = "Your selection is too large, please narrow your search"
       
