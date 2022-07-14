@@ -105,7 +105,7 @@ paths:
               schema:
                 type: object
                 properties:
-                         traits:
+                         taxa:
                           type: array
                           example: ["Acacia aneura","Banksia serrata","Eucalyptus saligna"]
   /taxa-autocomplete:
