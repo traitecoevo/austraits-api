@@ -107,7 +107,7 @@ function(req){
 
 ################################################################################
 
-# 1. count the number of traits per taxa by text name
+# 1.1 count the number of traits per taxa by text name
 
 #* @apiDescription 
 #* Return a count of unique traits for any given taxa from the taxon_name data field in AusTraits., e.g. Eucalyptus saligna 
@@ -186,62 +186,8 @@ function(taxon = "", APNI_ID = ""){
   }
  }
 
-
 ################################################################################
-
-# 2. Count the number of taxa per trait
-
-#* @apiDescription Possible values for traits are found at http://traitecoevo.github.io/austraits.build/articles/austraits_database_structure.html
-#* Return a count of unique species for any given trait name in the trait_name data field of AusTraits.
-#* @post /taxa-count
-
-function(req, res){
-  
-  # make traits object = the traits inside the request body
-  
-  traits = req$body$traits
-  
-  if (length(traits) == 0){
-    
-    traits = unique(located_data$trait_name)
-    
-  }
-  
-  #subset the data to the taxa and traits
-  
-  x = located_data %>% 
-    filter(trait_name %in% traits)
-  
-  if (nrow(x) > 0) {
-    
-    # Counts of unique taxa (species) for the trait value entered
-    x1 = x %>%
-      
-      select(taxon_name, trait_name) %>% 
-      
-      group_by(trait_name) %>% 
-      
-      summarise(taxa = n())
-    
-    x1 = x1 %>% mutate(definition = str_c("https://traitecoevo.github.io/austraits.build/articles/Trait_definitions.html#", trait_name)) %>% 
-      select(trait_name, definition, taxa)
-    
-    x2 = merge(x1, trait_type, by = "trait_name")
-    
-    return(x2)
-  
-    }else{
-    
-    return("Choose at least one trait and/or at least one taxon name in AusTraits")
-    
-  }
-  
-}
-
-
-
-################################################################################
-# 3. Present mean values for each trait associated with a taxa
+# 1.2 Present mean values for each trait associated with a taxa
 
 #* @apiDescription 
 #* Return a table of summarised trait data for a given taxa from the taxon_name data field in AusTraits
@@ -259,18 +205,18 @@ function(taxon = "", APNI_ID = ""){
   }else if (APNI_ID != ""){
     
     data = austraits_wide_means %>% filter(str_detect(acceptedNameUsageID, as.character(APNI_ID)))
-
+    
     taxon = data$taxon_name[1]
     
   }
- 
+  
   ############################ manipulate austraits to prepare for averages #################
   
   data$value_type[which(is.na(data$value_type))] = "unknown"
-    
+  
   
   ###################### Make the categorical trait summary  ####################
-    
+  
   # subset the data to the desired taxon name and get a vector of the available categorical traits
   cat_traits = data %>% filter(is.na(unit)) %>% select(taxon_name, trait_name, definition, ranking) %>% arrange(ranking) %>% unique()
   
@@ -279,40 +225,40 @@ function(taxon = "", APNI_ID = ""){
   
   # for each of the categorical traits...
   for (i in 1:length(cat_traits$trait_name)){
-  
-  # get austraits data for this taxa and the trait, remove NA values and make a table of the counts for each value
-  x = data %>% filter(trait_name == cat_traits$trait_name[i] & is.na(trait_value)==F) %>% select(trait_value) %>% unique()
-  
-  # make a character string made up of each unique trait value
-  y = x$trait_value %>% str_split(pattern = " ") %>% unlist() %>% str_c() %>% unique()
-  y = paste0(y, collapse = ", ")
-  
-  # make a row of data made up of the taxon name, the trait name and the trait value character above (y). The units will be blank.
-  z = data.frame(taxon_name = taxon, trait_name = cat_traits$trait_name[i], definition = cat_traits$definition[i], trait_values = y)
-  
-  #glue it to the dataframe
-  output = rbind(output, z)
+    
+    # get austraits data for this taxa and the trait, remove NA values and make a table of the counts for each value
+    x = data %>% filter(trait_name == cat_traits$trait_name[i] & is.na(trait_value)==F) %>% select(trait_value) %>% unique()
+    
+    # make a character string made up of each unique trait value
+    y = x$trait_value %>% str_split(pattern = " ") %>% unlist() %>% str_c() %>% unique()
+    y = paste0(y, collapse = ", ")
+    
+    # make a row of data made up of the taxon name, the trait name and the trait value character above (y). The units will be blank.
+    z = data.frame(taxon_name = taxon, trait_name = cat_traits$trait_name[i], definition = cat_traits$definition[i], trait_values = y)
+    
+    #glue it to the dataframe
+    output = rbind(output, z)
   }
   
   ###################### Make the numeric trait summary  ####################
   
   # Create a reference list of taxon-trait combinations and arrange them by ranking
   num_traits = data  %>% filter(!is.na(unit)) %>% select(taxon_name, trait_name, definition, unit, ranking) %>% arrange(ranking) %>% unique()
-
+  
   #create a blank dataframe
   output1 = data.frame()
   
   # for each of the numeric traits...
   for (i in 1:length(num_traits$trait_name)){
     
-  # get the data for each numeric trait, group by the value type and find the mean
-  # remove wrongly entered data and get numeric data only data only
+    # get the data for each numeric trait, group by the value type and find the mean
+    # remove wrongly entered data and get numeric data only data only
     a = data %>% filter(taxon_name == taxon) %>%
-        filter(trait_name == num_traits$trait_name[i]) %>% 
-        filter(!is.na(value_type)) %>% 
-        filter(!is.na(unit)) %>% 
-        mutate(trait_value = as.numeric(trait_value)) %>% 
-        filter(!is.na(trait_value))
+      filter(trait_name == num_traits$trait_name[i]) %>% 
+      filter(!is.na(value_type)) %>% 
+      filter(!is.na(unit)) %>% 
+      mutate(trait_value = as.numeric(trait_value)) %>% 
+      filter(!is.na(trait_value))
     
     # create a dataset of unknown sites
     b = a %>% filter((value_type %in% c("unknown", "raw_value") & is.na(site_name))) 
@@ -328,11 +274,11 @@ function(taxon = "", APNI_ID = ""){
     
     # calculate for individual_mean and raw_value and unknown
     r_i_u = rbind(x_list[["raw_value"]], x_list[["individual_mean"]], x_list[["unknown"]])  %>% group_by(dataset_id, site_name) %>% summarise(mean = mean(trait_value), min = NA, max = NA)
-
+    
     
     # Calculate for raw_value without sites
     raw_value1 = b %>% group_by(dataset_id) %>% summarise( mean = mean(trait_value), min = NA, max = NA) %>% mutate(site_name = NA) %>% select(dataset_id, site_name, mean, min, max)
-
+    
     
     # Now the expert mins and maxes
     expert = rbind(x_list[["expert_min"]], x_list[["expert_max"]])
@@ -372,7 +318,7 @@ function(taxon = "", APNI_ID = ""){
                               
                               unit = num_traits$unit[i]
                               
-
+                              
                               
     )
     
@@ -389,7 +335,7 @@ function(taxon = "", APNI_ID = ""){
                                                                x_list[["site_max"]]$trait_value,
                                                                x_list[["multisite_max"]]$trait_value,
                                                                overall_mean$mean[overall_mean$mean_type == "max"], na.rm = T)
-    
+      
       
     }
     
@@ -398,7 +344,7 @@ function(taxon = "", APNI_ID = ""){
       
       overall_mean$mean[overall_mean$mean_type == "min"]= min(x_list[["site_min"]]$trait_value,
                                                               overall_mean$mean[overall_mean$mean_type == "min"], na.rm = T)
-
+      
     }
     
     # stick it to the previous observation
@@ -409,7 +355,7 @@ function(taxon = "", APNI_ID = ""){
     
     output1$mean = gsub("\\-Inf|Inf", "", output1$mean)
     
-   
+    
     # I'm (incorrectly) rounding to 3 significant figures over all traits. A more sophisticated function is needed
     output1$mean = signif(as.numeric(output1$mean), 3)
     
@@ -417,12 +363,12 @@ function(taxon = "", APNI_ID = ""){
   }
   
   ################################## Final changes before sending ##################
-
+  
   # More cleaning for presentation
   output1 = pivot_wider(output1, names_from = mean_type, values_from = mean )
   
   output1 = output1 %>% select(taxon_name, trait_name, definition, min, mean, max, unit)
-
+  
   
   # take out the NAs
   output1 = output1 %>% mutate(across(min:max, as.character)) %>% replace_na(list(min = "", mean = "", max = ""))
@@ -434,21 +380,170 @@ function(taxon = "", APNI_ID = ""){
   
   # only print the data if data exists
   if (nrow(output)+nrow(output1) != 0){
-  
-  print(summary)
     
-}else{
-  
-  print("No data can be found for this taxon.")
-  
-   }
+    print(summary)
+    
+  }else{
+    
+    print("No data can be found for this taxon.")
+    
   }
+}
+#################################################################################
+# 1.3 Returns a table of the raw data used to calculate the species means
+#* @param taxon e.g. Angophora costata
+#* @param APNI_ID e.g. 2912252 (For Eucalyptus saligna)
+#* @serializer csv
+#* @get /download-taxon-data
+
+function(taxon = "", APNI_ID = ""){
+  
+  
+  if (taxon != ""){
+    
+    data = austraits_wide %>% filter(taxon_name == taxon)
+    
+  }else if (APNI_ID != ""){
+    
+    data = austraits_wide %>% filter(str_detect(acceptedNameUsageID, as.character(APNI_ID)))
+    
+  }
+  
+  data = data %>% mutate_all(coalesce, "")
+  
+  
+  filename = str_c("AusTraits_", data$taxon_name[1], "_",  gsub("\\:", "-", Sys.time()), ".csv")
+  filename = gsub(" ", "_", filename)
+  
+  #convert the subset to a csv
+  
+  as_attachment(data, filename)
+  
+}
 
 
 
 ################################################################################
 
-# 4. Post a list of species names and trait names and return a full data table of the prepped data observations 
+# 2.1 Count the number of taxa per trait
+
+#* @apiDescription Possible values for traits are found at http://traitecoevo.github.io/austraits.build/articles/austraits_database_structure.html
+#* Return a list of unique species for any given trait name in the trait_name data field of AusTraits.
+#* @post /taxa-list
+
+function(req, res){
+  
+  # make traits object = the traits inside the request body
+  
+  traits = req$body$traits
+  
+  if (length(traits) == 0){
+    
+    traits = unique(located_data$trait_name)
+    
+    
+  }
+  
+  #subset the data to the taxa and traits
+  
+  x = located_data %>% 
+    filter(trait_name %in% traits)
+  
+  if (nrow(x) > 0) {
+    
+    # Unique taxa (species) for the trait value entered
+    x1 = x %>%
+      
+      select(taxon_name) %>% unique()
+    
+    
+    x1 = x1$taxon_name
+    
+    return(x1)
+  
+    }else{
+    
+    return("Choose at least one trait as listed in the AusTraits database: http://traitecoevo.github.io/austraits.build/articles/austraits_database_structure.html")
+    
+  }
+  
+}
+###################################################################################################
+
+# 2.2 Return a list of traits for a given list of taxa
+
+#* @apiDescription Possible values for traits are found at http://traitecoevo.github.io/austraits.build/articles/austraits_database_structure.html
+#* Return a list of unique species for any given trait name in the trait_name data field of AusTraits.
+#* @post /trait-list
+
+function(req, res){
+  
+  # make taxa object = the taxa inside the request body
+  
+  taxa = req$body$taxa
+  
+  if (length(taxa) == 0){
+    
+    taxa = unique(located_data$taxon_name)
+    
+  }
+  
+  #subset the data to the taxa and traits
+  
+  x = located_data %>% 
+    filter(taxon_name %in% taxa)
+  
+  if (nrow(x) > 0) {
+    
+    # Unique taxa (species) for the trait value entered
+    x1 = x %>%
+      
+      select(trait_name) %>% unique()
+    
+    x1 = x1$trait_name
+    
+    return(x1)
+    
+  }else{
+    
+    return("Choose at least one taxon name as listed in the AusTraits database")
+    
+  }
+  
+}
+#################################################################################
+# 2.3 Return taxa that begin with a given text string
+
+#* @apiDescription Possible values for traits are found at http://traitecoevo.github.io/austraits.build/articles/austraits_database_structure.html
+#* Return a list of unique species for any given trait name in the trait_name data field of AusTraits.
+#* @get /taxa-autocomplete
+
+function(text_string = ""){
+
+  #subset the data to the taxa and traits
+  
+  x = located_data %>% 
+      filter(str_detect(taxon_name, str_c("^", text_string))) %>% 
+      select(taxon_name) %>% unique()
+  
+  if (nrow(x) > 0) {
+    
+    # Unique taxa (species) for the trait value entered
+    x1 = x$taxon_name
+    
+    return(x1)
+    
+  }else{
+    
+    return("Try typing the start of a taxon name e.g. Acacia")
+    
+  }
+  
+}
+
+################################################################################
+
+# 2.4 Post a list of species names and trait names and return a full data table of the prepped data observations 
 
 #* @apiDescription 
 #* Return a full data table for multiple species names and traits 
@@ -525,41 +620,10 @@ function(req, res){
 # Make another endpoint for guessing the start of the species name
 
 
-#################################################################################
-# 5. Returns a table of the raw data used to calculate the species means
-#* @param taxon e.g. Angophora costata
-#* @param APNI_ID e.g. 2912252 (For Eucalyptus saligna)
-#* @serializer csv
-#* @get /download-taxon-data
-
-function(taxon = "", APNI_ID = ""){
-  
-  
-  if (taxon != ""){
-    
-    data = austraits_wide %>% filter(taxon_name == taxon)
-    
-  }else if (APNI_ID != ""){
-    
-    data = austraits_wide %>% filter(str_detect(acceptedNameUsageID, as.character(APNI_ID)))
-  
-    }
-  
-  data = data %>% mutate_all(coalesce, "")
-  
-  
-  filename = str_c("AusTraits_", data$taxon_name[1], "_",  gsub("\\:", "-", Sys.time()), ".csv")
-  filename = gsub(" ", "_", filename)
-  
-  #convert the subset to a csv
-  
-  as_attachment(data, filename)
-  
-}
 
 #################################################################################
 
-# 6. Post a list of species names and return a full data table of multiple species as a csv file
+# 2.5 Post a list of species names and return a full data table of multiple species as a csv file
 
 #* @apiDescription 
 #* Return a full data table for given taxa for multiple species names as a csv file
