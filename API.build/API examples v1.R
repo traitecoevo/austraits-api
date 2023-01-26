@@ -18,7 +18,7 @@ library(purrr)
 remotes::install_github("traitecoevo/austraits")
 
 library(austraits) 
-austraits <- load_austraits(path="data/austraits", version = get_version_latest())
+austraits <- load_austraits(path="data/austraits", version = "3.0.2")
 
 austraits_wide = as_wide_table(austraits)
 
