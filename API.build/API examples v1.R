@@ -9,7 +9,9 @@ library(tidyr)
 library(stringr)
 library(readr)
 library(purrr)
-#install.packages("remotes")
+
+#library(refmanager)
+# 
 
 remotes::install_github("traitecoevo/austraits")
 
@@ -85,6 +87,7 @@ located_data = aus_wide %>%
   filter(basis_of_record %in% c("preserved_specimen", "field", "literature, field",
                                 "literature","field, preserved_specimen", "field_experiment", 
                                 "field, field_experiment")) %>% 
+  
   mutate(data_type = ifelse(is.na(unit), "categorical", "numeric"))
 
 # a reference for later
@@ -705,12 +708,12 @@ function(req, res){
 # Overlay the yaml file over the top for ease of testing and clarity. 
 # Anything in the yaml file that conflicts with the specifications above will overwrite them. 
 
-#* @plumber
-
-function(pr){
-  pr %>% 
-    pr_set_api_spec(yaml::read_yaml("API examples v1.yml"))
-  # limits requests to about 50 species names, or a 6.5 megabyte file
-  options_plumber(maxRequestSize = getOption("plumber.maxRequestSize", 10000000000000))
-}
-
+# #* @plumber
+# 
+# function(pr){
+#   pr %>% 
+#     pr_set_api_spec(yaml::read_yaml("API examples v1.yml"))
+#   # limits requests to about 50 species names, or a 6.5 megabyte file
+#   options_plumber(maxRequestSize = getOption("plumber.maxRequestSize", 10000000000000))
+# }
+# 
