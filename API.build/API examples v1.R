@@ -19,81 +19,81 @@ library(austraits)
 
 austraits <- load_austraits(path="data/austraits", version = get_version_latest())
 
-aus_wide = as_wide_table(austraits) %>% rename(trait_value = value)
-
-
-############################# ALA trait summary prep ####################################
-
-# Traits marked as definitely of interest
-ord = data.frame(trait_name = c("plant_growth_form",  "woodiness", "life_history", "plant_height", "leaf_compoundness", "fire_response","photosynthetic_pathway",
-                                "dispersal_syndrome", "dispersers", "reproductive_maturity", "reproductive_maturity_primary", "salt_tolerance", "inundation_tolerance","leaf_area","bud_bank_location","flowering_time","fruiting_time",
-                                "post_fire_recruitment","life_form","root_structure","germination","seed_storage_location","wood_density","fire_and_establishing","storage_organ",
-                                "serotiny","physical_defence","growth_habit","ploidy"))
-
-# Traits marked as possibly of interest
-ord1 = data.frame(trait_name = c("sex_type","root_shoot_ratio", "soil_seedbank", "flower_colour","pollination_system","fruit_type" ,"fruit_fleshiness","fruit_dehiscence","seed_shape","seed_dry_mass", "genome_size", "leaf_length","leaf_width","leaf_margin","leaf_phenology",
-                                 "spinescence","parasitic","dispersal_appendage","clonal_spread_mechanism","leaf_type","leaf_shape","leaf_arrangement","leaf_lifespan","seedling_first_leaf","leaf_N_per_dry_mass","leaf_dry_mass",
-                                 "leaf_dry_matter_content","leaf_P_per_dry_mass","leaf_C_per_dry_mass","leaf_K_per_dry_mass","photosynthetic_rate_per_area_saturated","leaf_work_to_punch","bark_thickness" ,"vessel_density","leaf_tannin_per_dry_mass",
-                                 "chlorophyll_per_dry_mass"))
-
-# Bind them together
-ord = rbind(ord, ord1)
-
-# Add the ranking
-ord$ranking = 1:length(ord$trait_name)
-
-# Filter the data
-aus_wide_means = aus_wide %>%
-  filter(trait_name %in% ord$trait_name) %>%
-  filter(str_detect(life_stage, "adult")) %>% 
-  filter(basis_of_record %in% c("preserved_specimen", "field", "literature, field",
-                                "literature","field, preserved_specimen", "field_experiment", 
-                                "field, field_experiment"))
-
-# change the units for presentation
-aus_wide_means$trait_value = ifelse(aus_wide_means$trait_name == "reproductive_maturity", str_c(aus_wide_means$trait_value, "_years"), aus_wide_means$trait_value)
-aus_wide_means$unit = ifelse(aus_wide_means$trait_name == "reproductive_maturity", NA, aus_wide_means$unit)
-
-aus_wide_means$unit = gsub("^mo$", "months", aus_wide_means$unit)
-aus_wide_means$unit = gsub("^d$", "days", aus_wide_means$unit)
-
-# convert all fruiting times and flowering times to months
-f = aus_wide_means %>% filter(trait_name %in% c("flowering_time", "fruiting_time"))
-
-month = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
-
-for (i in 1:length(f$trait_value)){
-  f1      <- unlist(strsplit(f$trait_value[i],""))
-  f2 = ifelse(f1 == "y", month, NA)
-  f3 = paste0(f2[complete.cases(f2)], collapse = "_")
-  f$trait_value[i] = f3
-}
-
-aus_wide_means = rbind(aus_wide_means %>% filter(!trait_name %in% c("flowering_time", "fruiting_time")), f)
-
-# Merge in the rankings
-aus_wide_means = left_join(aus_wide_means, ord, by = c("trait_name"), all.x = T)
-
-# Add in a link to the trait definition
-aus_wide_means = aus_wide_means %>% mutate(definition = str_c("https://traitecoevo.github.io/austraits.build/articles/Trait_definitions.html#", str_to_lower(gsub("_", "-", trait_name))))
-
-
-
-######################### Ecocommons trait data prep ############################
-
-located_data = aus_wide %>% 
-  filter(!is.na(`longitude (deg)`)) %>% 
-  filter(str_detect(life_stage, "adult")) %>% 
-  filter(basis_of_record %in% c("preserved_specimen", "field", "literature, field",
-                                "literature","field, preserved_specimen", "field_experiment", 
-                                "field, field_experiment")) %>% 
-  
-  mutate(data_type = ifelse(is.na(unit), "categorical", "numeric"))
-
-# a reference for later
-trait_type = located_data %>% select(trait_name, unit) %>% unique() %>% mutate(data_type = ifelse(is.na(unit), "categorical", "numeric")) %>% select(-unit)
-################################################################################
-
+# aus_wide = as_wide_table(austraits) %>% rename(trait_value = value)
+# 
+# 
+# ############################# ALA trait summary prep ####################################
+# 
+# # Traits marked as definitely of interest
+# ord = data.frame(trait_name = c("plant_growth_form",  "woodiness", "life_history", "plant_height", "leaf_compoundness", "fire_response","photosynthetic_pathway",
+#                                 "dispersal_syndrome", "dispersers", "reproductive_maturity", "reproductive_maturity_primary", "salt_tolerance", "inundation_tolerance","leaf_area","bud_bank_location","flowering_time","fruiting_time",
+#                                 "post_fire_recruitment","life_form","root_structure","germination","seed_storage_location","wood_density","fire_and_establishing","storage_organ",
+#                                 "serotiny","physical_defence","growth_habit","ploidy"))
+# 
+# # Traits marked as possibly of interest
+# ord1 = data.frame(trait_name = c("sex_type","root_shoot_ratio", "soil_seedbank", "flower_colour","pollination_system","fruit_type" ,"fruit_fleshiness","fruit_dehiscence","seed_shape","seed_dry_mass", "genome_size", "leaf_length","leaf_width","leaf_margin","leaf_phenology",
+#                                  "spinescence","parasitic","dispersal_appendage","clonal_spread_mechanism","leaf_type","leaf_shape","leaf_arrangement","leaf_lifespan","seedling_first_leaf","leaf_N_per_dry_mass","leaf_dry_mass",
+#                                  "leaf_dry_matter_content","leaf_P_per_dry_mass","leaf_C_per_dry_mass","leaf_K_per_dry_mass","photosynthetic_rate_per_area_saturated","leaf_work_to_punch","bark_thickness" ,"vessel_density","leaf_tannin_per_dry_mass",
+#                                  "chlorophyll_per_dry_mass"))
+# 
+# # Bind them together
+# ord = rbind(ord, ord1)
+# 
+# # Add the ranking
+# ord$ranking = 1:length(ord$trait_name)
+# 
+# # Filter the data
+# aus_wide_means = aus_wide %>%
+#   filter(trait_name %in% ord$trait_name) %>%
+#   filter(str_detect(life_stage, "adult")) %>% 
+#   filter(basis_of_record %in% c("preserved_specimen", "field", "literature, field",
+#                                 "literature","field, preserved_specimen", "field_experiment", 
+#                                 "field, field_experiment"))
+# 
+# # change the units for presentation
+# aus_wide_means$trait_value = ifelse(aus_wide_means$trait_name == "reproductive_maturity", str_c(aus_wide_means$trait_value, "_years"), aus_wide_means$trait_value)
+# aus_wide_means$unit = ifelse(aus_wide_means$trait_name == "reproductive_maturity", NA, aus_wide_means$unit)
+# 
+# aus_wide_means$unit = gsub("^mo$", "months", aus_wide_means$unit)
+# aus_wide_means$unit = gsub("^d$", "days", aus_wide_means$unit)
+# 
+# # convert all fruiting times and flowering times to months
+# f = aus_wide_means %>% filter(trait_name %in% c("flowering_time", "fruiting_time"))
+# 
+# month = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+# 
+# for (i in 1:length(f$trait_value)){
+#   f1      <- unlist(strsplit(f$trait_value[i],""))
+#   f2 = ifelse(f1 == "y", month, NA)
+#   f3 = paste0(f2[complete.cases(f2)], collapse = "_")
+#   f$trait_value[i] = f3
+# }
+# 
+# aus_wide_means = rbind(aus_wide_means %>% filter(!trait_name %in% c("flowering_time", "fruiting_time")), f)
+# 
+# # Merge in the rankings
+# aus_wide_means = left_join(aus_wide_means, ord, by = c("trait_name"), all.x = T)
+# 
+# # Add in a link to the trait definition
+# aus_wide_means = aus_wide_means %>% mutate(definition = str_c("https://traitecoevo.github.io/austraits.build/articles/Trait_definitions.html#", str_to_lower(gsub("_", "-", trait_name))))
+# 
+# 
+# 
+# ######################### Ecocommons trait data prep ############################
+# 
+# located_data = aus_wide %>% 
+#   filter(!is.na(`longitude (deg)`)) %>% 
+#   filter(str_detect(life_stage, "adult")) %>% 
+#   filter(basis_of_record %in% c("preserved_specimen", "field", "literature, field",
+#                                 "literature","field, preserved_specimen", "field_experiment", 
+#                                 "field, field_experiment")) %>% 
+#   
+#   mutate(data_type = ifelse(is.na(unit), "categorical", "numeric"))
+# 
+# # a reference for later
+# trait_type = located_data %>% select(trait_name, unit) %>% unique() %>% mutate(data_type = ifelse(is.na(unit), "categorical", "numeric")) %>% select(-unit)
+# ################################################################################
+# 
 
 # We are ready for the API
 
