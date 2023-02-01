@@ -102,6 +102,7 @@ austraits <- load_austraits(path="data/austraits", version = get_version_latest(
 
 #* Health Check - Is the API running?
 #* @get /health-check
+#* @head /health-check
 
 status = function(){
   list(
