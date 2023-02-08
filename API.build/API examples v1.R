@@ -183,7 +183,7 @@ function(taxon = "", APNI_ID = ""){
   # If the summary contains traits...
   if(x1 != 0){
 
-    a = data.frame(y, x1, z, paste0("There are ", x1, " traits available for ", y, ", with data for ", z, " further traits in the AusTraits database. These are accessible via the download CSV button or alternatively the entire database can be accessed at https://zenodo.org/record/7368074"))
+    a = data.frame(y, x1, z, paste0("There are ", x1, " traits available for ", y, ", with data for ", z, " further traits in the AusTraits database. These are accessible via the download CSV button or alternatively the entire database can be accessed at doi.org/10.5281/zenodo.3568417"))
 
     names(a) = c("taxon", "summary", "AusTraits", "explanation")
 
@@ -192,7 +192,7 @@ function(taxon = "", APNI_ID = ""){
     # If the summary has no traits but some exist in AusTraits
   }else if(x1 == 0 & x != 0){
 
-    a = data.frame(y, x1, z, print(y, " has data for ", y, " traits in the AusTraits database. These are accessible via the download CSV button or alternatively the entire database can be accessed at https://zenodo.org/record/7368074#.Y9Rk7XY7a00"))
+    a = data.frame(y, x1, z, print(y, " has data for ", y, " traits in the AusTraits database. These are accessible via the download CSV button or alternatively the entire database can be accessed at doi.org/10.5281/zenodo.3568417"))
 
     names(a) = c("taxon", "summary", "AusTraits", "explanation")
 
@@ -202,7 +202,7 @@ function(taxon = "", APNI_ID = ""){
   }else{
 
 
-    a = data.frame(y, x1, z, print("There is currently no data for the taxon name you searched for in the AusTraits database. Search for another species name or access the entire database at https://zenodo.org/record/7368074"))
+    a = data.frame(y, x1, z, print("There is currently no data for the taxon name you searched for in the AusTraits database. Search for another species name or access the entire database at doi.org/10.5281/zenodo.3568417"))
 
     names(a) = c("taxon", "summary", "AusTraits", "explanation")
 
@@ -293,7 +293,8 @@ function(taxon = "", APNI_ID = ""){
     output$trait_name = gsub("_", " ", output$trait_name)
     output$trait_name = str_to_sentence(output$trait_name)
     output = output %>% mutate(trait_values = str_c(trait_values,"  ", asterisk)) %>% select(-asterisk) %>% mutate(trait_values = str_trim(trait_values))
-
+    output = outout %>% filter(trait_values != "")
+    
   }else{
 
     output = "There is no categorical summary data for this taxon."
@@ -689,7 +690,7 @@ function(req, res){
 
   if(nrow(x) > 100000){
 
-    x = data.frame(Error = c("The file size is too large. The entire AusTraits database can be downloaded from the AusTraits webpage", "https://zenodo.org/record/7368074"))
+    x = data.frame(Error = c("The file size is too large. The entire AusTraits database can be downloaded from the AusTraits webpage", "doi.org/10.5281/zenodo.3568417"))
 
   }else{
 
