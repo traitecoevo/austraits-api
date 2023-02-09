@@ -75,7 +75,7 @@ aus_wide_means = rbind(aus_wide_means %>% filter(!trait_name %in% c("flowering_t
 aus_wide_means = left_join(aus_wide_means, ord, by = c("trait_name"), all.x = T)
 
 # Add in a link to the trait definition
-aus_wide_means = aus_wide_means %>% mutate(definition = str_c("https://traitecoevo.github.io/austraits.build/articles/Trait_definitions.html#", str_to_lower(gsub("_", "-", trait_name))))
+aus_wide_means = aus_wide_means %>% mutate(definition = str_c("https://traitecoevo.github.io/austraits.build/articles/trait_definitions.html#", str_to_lower(trait_name)))
 
 
 
@@ -293,7 +293,7 @@ function(taxon = "", APNI_ID = ""){
     output$trait_name = gsub("_", " ", output$trait_name)
     output$trait_name = str_to_sentence(output$trait_name)
     output = output %>% mutate(trait_values = str_c(trait_values,"  ", asterisk)) %>% select(-asterisk) %>% mutate(trait_values = str_trim(trait_values))
-    output = outout %>% filter(trait_values != "")
+    output = output %>% filter(trait_values != "")
     
   }else{
 
@@ -389,7 +389,10 @@ function(taxon = "", APNI_ID = ""){
 
     output1$trait_name = gsub("_", " ", output1$trait_name)
     output1$trait_name = str_to_sentence(output1$trait_name)
-
+    output1$trait_name = gsub(" n ", " N ", output1$trait_name)
+    output1$trait_name = gsub(" c ", " C ", output1$trait_name)
+    output1$trait_name = gsub(" p ", " P ", output1$trait_name)
+    output1$trait_name = gsub(" k ", " K ", output1$trait_name)
     output1$mean[output1$mean == "NaN"] = ""
 
   }else{
@@ -573,7 +576,36 @@ function(text_string = ""){
 }
 
 ################################################################################
+# 2.3.1 Return taxa that begin with a given text string
 
+#* @apiDescription Possible values for traits are found at http://traitecoevo.github.io/austraits.build/articles/austraits_database_structure.html
+#* Return a list of unique traits for any given taxon name in the taxon_name data field of AusTraits.
+#* @get /trait-autocomplete
+
+function(text_string = ""){
+  
+  #subset the data to the taxa and traits
+  
+  x = located_data %>%
+    filter(str_detect(trait_name, str_c("^", text_string))) %>%
+    select(trait_name) %>% unique()
+  
+  if (nrow(x) > 0) {
+    
+    # Unique taxa (species) for the trait value entered
+    x1 = x$trait_name
+    
+    return(x1)
+    
+  }else{
+    
+    return("Try typing the start of a trait name e.g. leaf")
+    
+  }
+  
+}
+
+#################################################################################
 # 2.4 Post a list of species names and trait names and return a full data table of the prepped data observations
 
 #* @apiDescription
@@ -619,7 +651,7 @@ function(req, res){
       summarise(datapoints = n())
 
 
-    if(nrow(x1) > 20000){
+    if(nrow(x1) > 30000){
 
       a = "Your selection is too large, please narrow your search"
 
@@ -627,7 +659,7 @@ function(req, res){
 
     }else{
 
-      x1 = x1 %>% mutate(definition = str_c("https://traitecoevo.github.io/austraits.build/articles/Trait_definitions.html#", trait_name)) %>%
+      x1 = x1 %>% mutate(definition = str_c("https://traitecoevo.github.io/austraits.build/articles/trait_definitions.html#", trait_name)) %>%
         select(taxon_name, trait_name, definition, datapoints)
 
 

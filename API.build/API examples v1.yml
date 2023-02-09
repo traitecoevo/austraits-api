@@ -92,7 +92,7 @@ paths:
                           example: ["seed_mass","seed_length","seed_volume"]
   /trait-list:
       post:
-        summary: "For Ecocommons: Returns the names unique traits for a list of taxa"
+        summary: "For Ecocommons: Returns the names unique traits for a list of taxa within the subset of austraits data that is georeferenced"
         description: This function returns an array of unique traits that exist in AusTraits for each taxa specified within the subset of austraits data that is georeferenced.
         responses:
          default:
@@ -119,6 +119,20 @@ paths:
         - in: query
           name: text_string
           description: e.g. Eucal
+          required: false
+          schema:
+            type: string
+  /trait-autocomplete:
+    get:
+      summary: "For Ecocommons: Returns the trait that begins with a given text string within the subset of austraits data that is georeferenced"
+      description: This function returns trait names that begin with a given text string within the subset of austraits data that is georeferenced
+      responses:
+        default:
+        description: Default response
+      parameters:
+        - in: query
+          name: text_string
+          description: e.g. leaf
           required: false
           schema:
             type: string
