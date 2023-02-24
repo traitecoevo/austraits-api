@@ -407,7 +407,7 @@ function(taxon = "", APNI_ID = ""){
 
 
   # only print the data if data exists
-  if (length(nrow(output)+nrow(output1)) != 0){
+  if (is.data.frame(output) | is.data.frame(output1)){
 
     #Present as two names tables, categorical and numeric traits
     summary = list(categorical_traits = output, numeric_traits = output1)
