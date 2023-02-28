@@ -297,7 +297,7 @@ function(taxon = "", APNI_ID = ""){
     
   }else{
 
-    output = "There is no categorical summary data for this taxon."
+    output = list()
   }
   # end of cat traits table
 
@@ -397,7 +397,7 @@ function(taxon = "", APNI_ID = ""){
 
   }else{
 
-    output1 = "There is no numeric summary data for this taxon."
+    output1 = list()
   }
 
   # end of numeric traits table
