@@ -1,6 +1,6 @@
 #### AusTraits API development ####
 # Load packages and austraits data
-
+austraits$traits[450351,]
 #install.packages("plumber")
 library(plumber)
 
@@ -18,6 +18,17 @@ remotes::install_github("traitecoevo/austraits")
 library(austraits) 
 
 austraits <- load_austraits(path="data/austraits", version = get_version_latest())
+
+
+austraits$traits = austraits$traits %>% filter(!(dataset_id == "eFLOWER_Dun_2022" & taxon_name == "Abrotanella nivigena" ))
+
+austraits$contexts = austraits$contexts %>% filter(!dataset_id %in% c("Kubiak_2009", "vanderMoezel_1987"))
+austraits$locations = austraits$locations %>% filter(!(dataset_id == "Ahrens_2019" & location_id %in% c("08", "09")))
+austraits$methods = austraits$methods %>% filter(!dataset_id %in% c("Morgan_2021", "Nano_2011", "Purdie_1976"))
+austraits$methods = austraits$methods %>% dplyr::select(-value_type)
+austraits_wide = as_wide_table(austraits)
+
+
 
 aus_wide = as_wide_table(austraits) %>% rename(trait_value = value)
 
@@ -72,7 +83,7 @@ for (i in 1:length(f$trait_value)){
 aus_wide_means = rbind(aus_wide_means %>% filter(!trait_name %in% c("flowering_time", "fruiting_time")), f)
 
 # Merge in the rankings
-aus_wide_means = left_join(aus_wide_means, ord, by = c("trait_name"), all.x = T)
+aus_wide_means = left_join(aus_wide_means, ord, by = c("trait_name"))
 
 # Add in a link to the trait definition
 aus_wide_means = aus_wide_means %>% mutate(definition = str_c("https://traitecoevo.github.io/austraits.build/articles/trait_definitions.html#", str_to_lower(trait_name)))
@@ -91,7 +102,7 @@ located_data = aus_wide %>%
   mutate(data_type = ifelse(is.na(unit), "categorical", "numeric"))
 
 # a reference for later
-trait_type = located_data %>% select(trait_name, unit) %>% unique() %>% mutate(data_type = ifelse(is.na(unit), "categorical", "numeric")) %>% select(-unit)
+trait_type = located_data %>% dplyr::select(trait_name, unit) %>% unique() %>% mutate(data_type = ifelse(is.na(unit), "categorical", "numeric"))
 ################################################################################
 
 
