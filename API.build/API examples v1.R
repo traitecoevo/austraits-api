@@ -1,6 +1,5 @@
 #### AusTraits API development ####
 # Load packages and austraits data
-austraits$traits[450351,]
 #install.packages("plumber")
 library(plumber)
 
@@ -26,7 +25,7 @@ austraits$contexts = austraits$contexts %>% filter(!dataset_id %in% c("Kubiak_20
 austraits$locations = austraits$locations %>% filter(!(dataset_id == "Ahrens_2019" & location_id %in% c("08", "09")))
 austraits$methods = austraits$methods %>% filter(!dataset_id %in% c("Morgan_2021", "Nano_2011", "Purdie_1976"))
 austraits$methods = austraits$methods %>% dplyr::select(-value_type)
-austraits_wide = as_wide_table(austraits)
+
 
 
 
