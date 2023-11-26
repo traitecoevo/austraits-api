@@ -72,10 +72,10 @@ for (i in 1:length(f$trait_value)){
 aus_wide_means = rbind(aus_wide_means %>% filter(!trait_name %in% c("flowering_time", "fruiting_time")), f)
 
 # Merge in the rankings
-aus_wide_means = left_join(aus_wide_means, ord, by = c("trait_name"), all.x = T)
+aus_wide_means = left_join(aus_wide_means, ord, by = c("trait_name"))
 
 # Add in a link to the trait definition
-aus_wide_means = aus_wide_means %>% mutate(definition = str_c("https://traitecoevo.github.io/austraits.build/articles/trait_definitions.html#", str_to_lower(trait_name)))
+aus_wide_means = aus_wide_means %>% mutate(definition = str_c("https://traitecoevo.github.io/APD/index.html#", str_to_lower(trait_name)))
 
 
 
@@ -183,7 +183,7 @@ function(taxon = "", APNI_ID = ""){
   # If the summary contains traits...
   if(x1 != 0){
 
-    a = data.frame(y, x1, z, paste0("There are ", x1, " traits available for ", y, ", with data for ", z, " further traits in the AusTraits database. These are accessible via the download CSV button or alternatively the entire database can be accessed at doi.org/10.5281/zenodo.3568417"))
+    a = data.frame(y, x1, z, paste0("There are ", x1, " traits available for ", y, ", with data for ", z, " further traits in the AusTraits database. These are accessible via the download CSV button or alternatively the entire database can be accessed at doi.org/10.5281/zenodo.10156222"))
 
     names(a) = c("taxon", "summary", "AusTraits", "explanation")
 
@@ -192,7 +192,7 @@ function(taxon = "", APNI_ID = ""){
     # If the summary has no traits but some exist in AusTraits
   }else if(x1 == 0 & x != 0){
 
-    a = data.frame(y, x1, z, print(y, " has data for ", y, " traits in the AusTraits database. These are accessible via the download CSV button or alternatively the entire database can be accessed at doi.org/10.5281/zenodo.3568417"))
+    a = data.frame(y, x1, z, print(y, " has data for ", y, " traits in the AusTraits database. These are accessible via the download CSV button or alternatively the entire database can be accessed at doi.org/10.5281/zenodo.10156222"))
 
     names(a) = c("taxon", "summary", "AusTraits", "explanation")
 
@@ -202,7 +202,7 @@ function(taxon = "", APNI_ID = ""){
   }else{
 
 
-    a = data.frame(y, x1, z, print("There is currently no data for the taxon name you searched for in the AusTraits database. Search for another species name or access the entire database at doi.org/10.5281/zenodo.3568417"))
+    a = data.frame(y, x1, z, print("There is currently no data for the taxon name you searched for in the AusTraits database. Search for another species name or access the entire database at doi.org/10.5281/zenodo.10156222"))
 
     names(a) = c("taxon", "summary", "AusTraits", "explanation")
 
@@ -496,7 +496,7 @@ function(req, res){
 
   }else{
 
-    return("Choose at least one trait as listed in the AusTraits database: http://traitecoevo.github.io/austraits.build/articles/austraits_database_structure.html")
+    return("Choose at least one trait as listed in the AusTraits database: https://traitecoevo.github.io/APD/index.html")
 
   }
 
@@ -548,7 +548,7 @@ function(req, res){
 # #################################################################################
 # 2.3 Return taxa that begin with a given text string
 
-#* @apiDescription Possible values for traits are found at http://traitecoevo.github.io/austraits.build/articles/austraits_database_structure.html
+#* @apiDescription Possible values for traits are found at https://traitecoevo.github.io/APD/index.html
 #* Return a list of unique species for any given trait name in the trait_name data field of AusTraits.
 #* @get /taxa-autocomplete
 
@@ -578,7 +578,7 @@ function(text_string = ""){
 ################################################################################
 # 2.3.1 Return taxa that begin with a given text string
 
-#* @apiDescription Possible values for traits are found at http://traitecoevo.github.io/austraits.build/articles/austraits_database_structure.html
+#* @apiDescription Possible values for traits are found at https://traitecoevo.github.io/APD/index.html
 #* Return a list of unique traits for any given taxon name in the taxon_name data field of AusTraits.
 #* @get /trait-autocomplete
 
@@ -659,7 +659,7 @@ function(req, res){
 
     }else{
 
-      x1 = x1 %>% mutate(definition = str_c("https://traitecoevo.github.io/austraits.build/articles/trait_definitions.html#", trait_name)) %>%
+      x1 = x1 %>% mutate(definition = str_c("https://traitecoevo.github.io/APD/index.html#", trait_name)) %>%
         select(taxon_name, trait_name, definition, datapoints)
 
 
