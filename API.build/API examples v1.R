@@ -18,17 +18,6 @@ library(austraits)
 
 austraits <- load_austraits(path="data/austraits", version = get_version_latest())
 
-
-austraits$traits = austraits$traits %>% filter(!(dataset_id == "eFLOWER_Dun_2022" & taxon_name == "Abrotanella nivigena" ))
-
-austraits$contexts = austraits$contexts %>% filter(!dataset_id %in% c("Kubiak_2009", "vanderMoezel_1987"))
-austraits$locations = austraits$locations %>% filter(!(dataset_id == "Ahrens_2019" & location_id %in% c("08", "09")))
-austraits$methods = austraits$methods %>% filter(!dataset_id %in% c("Morgan_2021", "Nano_2011", "Purdie_1976"))
-austraits$methods = austraits$methods %>% dplyr::select(-value_type)
-
-
-
-
 aus_wide = as_wide_table(austraits) %>% rename(trait_value = value)
 
 
