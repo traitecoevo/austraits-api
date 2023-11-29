@@ -98,7 +98,7 @@ aus_wide_means = left_join(aus_wide_means, ord, by = c("trait_name"))
 
 
 # Create a definitions link column from the austraits definitions list
-def = austraits$definition
+def = austraits$definitions
 
 out = data.frame()
 
