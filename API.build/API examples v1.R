@@ -89,10 +89,11 @@ aus_wide_means = rbind(aus_wide_means %>% filter(!trait_name %in% c("flowering_t
 
 
 
-################## Adding on trait rankings and definition urls ################
+########### Adding on trait rankings, definition urls and trait labels ################
 
 # Add the ranking so the traits will appear in order
 ord$ranking = 1:length(ord$trait_name)
+
 # Merge in the rankings
 aus_wide_means = left_join(aus_wide_means, ord, by = c("trait_name"))
 
@@ -104,7 +105,9 @@ out = data.frame()
 
 for (i in 1:length(unique(aus_wide_means$trait_name))){
   
-  temp = data.frame(trait_name = unique(aus_wide_means$trait_name)[i], definition = def[[unique(aus_wide_means$trait_name)[i]]]$entity_URI)
+  temp = data.frame(trait_name = unique(aus_wide_means$trait_name)[i], 
+                    label = def[[unique(aus_wide_means$trait_name)[i]]]$label,
+                    definition = def[[unique(aus_wide_means$trait_name)[i]]]$entity_URI)
   
   out = rbind(out, temp)
   
@@ -274,7 +277,7 @@ function(taxon = "", APNI_ID = ""){
   ###################### Make the categorical trait summary  ####################
 
   # subset the data to the desired taxon name and get a vector of the available categorical traits
-  cat_traits = data %>% filter(is.na(unit)) %>% select(taxon_name, trait_name, definition, ranking) %>% arrange(ranking) %>% unique()
+  cat_traits = data %>% filter(is.na(unit)) %>% select(taxon_name, label, trait_name, definition, ranking) %>% arrange(ranking) %>% unique()
 
 
   if (nrow(cat_traits) != 0){
@@ -293,7 +296,7 @@ function(taxon = "", APNI_ID = ""){
       y = paste0(y, collapse = ", ")
 
       # make a row of data made up of the taxon name, the trait name and the trait value character above (y). The units will be blank.
-      z = data.frame(taxon_name = taxon, trait_name = cat_traits$trait_name[i], definition = cat_traits$definition[i], trait_values = y)
+      z = data.frame(taxon_name = taxon, trait_name = cat_traits$label[i], definition = cat_traits$definition[i], trait_values = y)
 
       #glue it to the dataframe
       output = rbind(output, z)
@@ -304,29 +307,27 @@ function(taxon = "", APNI_ID = ""){
     output$asterisk = ifelse(str_detect(output$trait_values, ","), "*", "")
 
     # clean up flowering times
-    if ("flowering_time" %in% output$trait_name){
-      flower = output$trait_values[output$trait_name == "flowering_time"]
+    if ("Flowering time, by month" %in% output$trait_name){
+      flower = output$trait_values[output$trait_name == "Flowering time, by month"]
       flower = gsub(",", "", flower)
       flower = unlist(str_split(flower, pattern = " "))
       flower = flower %>% unique()
       flower = flower[match(month, flower)]
       flower = paste(flower[complete.cases(flower)], collapse = ", ")
-      output$trait_values[output$trait_name == "flowering_time"] = flower
+      output$trait_values[output$trait_name == "Flowering time, by month"] = flower
     }
 
-    if ("fruiting_time" %in% output$trait_name){
-      fruit = output$trait_values[output$trait_name == "fruiting_time"]
+    if ("Fruiting time, by month" %in% output$trait_name){
+      fruit = output$trait_values[output$trait_name == "Fruiting time, by month"]
       fruit = gsub(",", "", fruit)
       fruit = unlist(str_split(fruit, pattern = " "))
       fruit = fruit %>% unique()
       fruit = fruit[match(month, fruit)]
       fruit = paste(fruit[complete.cases(fruit)], collapse = ", ")
-      output$trait_values[output$trait_name == "fruiting_time"] = fruit
+      output$trait_values[output$trait_name == "Fruiting time, by month"] = fruit
 
     }
 
-    output$trait_name = gsub("_", " ", output$trait_name)
-    output$trait_name = str_to_sentence(output$trait_name)
     output = output %>% mutate(trait_values = str_c(trait_values,"  ", asterisk)) %>% select(-asterisk) %>% mutate(trait_values = str_trim(trait_values))
     output = output %>% filter(trait_values != "")
     
@@ -339,7 +340,7 @@ function(taxon = "", APNI_ID = ""){
   ###################### Make the numeric trait summary  ####################
 
   # Create a reference list of taxon-trait combinations and arrange them by ranking
-  num_traits = data  %>% filter(!is.na(unit)) %>% select(taxon_name, trait_name, definition, unit, ranking) %>% arrange(ranking) %>% unique()
+  num_traits = data  %>% filter(!is.na(unit)) %>% select(taxon_name, label, trait_name, definition, unit, ranking) %>% arrange(ranking) %>% unique()
 
   if( nrow(num_traits) != 0){
 
@@ -377,7 +378,7 @@ function(taxon = "", APNI_ID = ""){
       # take the mean, min and max of sites
       overall_mean = data.frame(taxon_name = num_traits$taxon_name[i],
 
-                                trait_name = num_traits$trait_name[i],
+                                trait_name = num_traits$label[i],
 
                                 definition = num_traits$definition[i],
 
@@ -422,12 +423,6 @@ function(taxon = "", APNI_ID = ""){
     # take out the NAs
     output1 = output1 %>% mutate(across(min:max, as.character)) %>% replace_na(list(min = "", mean = "", max = ""))
 
-    output1$trait_name = gsub("_", " ", output1$trait_name)
-    output1$trait_name = str_to_sentence(output1$trait_name)
-    output1$trait_name = gsub(" n ", " N ", output1$trait_name)
-    output1$trait_name = gsub(" c ", " C ", output1$trait_name)
-    output1$trait_name = gsub(" p ", " P ", output1$trait_name)
-    output1$trait_name = gsub(" k ", " K ", output1$trait_name)
     output1$mean[output1$mean == "NaN"] = ""
 
   }else{
