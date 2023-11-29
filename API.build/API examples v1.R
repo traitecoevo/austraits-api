@@ -1,16 +1,13 @@
 #### AusTraits API development ####
-# Load packages and austraits data
-#install.packages("plumber")
-library(plumber)
 
+######################### Load packages and austraits data ######################
+
+library(plumber)
 library(dplyr)
 library(tidyr)
 library(stringr)
 library(readr)
 library(purrr)
-
-#library(refmanager)
-# 
 
 remotes::install_github("traitecoevo/austraits")
 
@@ -18,30 +15,41 @@ library(austraits)
 
 austraits <- load_austraits(path="data/austraits", version = get_version_latest())
 
+#################################################################################
+
+
+############# create the wide table base for most of the outputs ################
+
 aus_wide = as_wide_table(austraits) %>% rename(trait_value = value)
 
 
 ############################# ALA trait summary prep ####################################
 
-# Traits marked as definitely of interest
-ord = data.frame(trait_name = c("plant_growth_form",  "woodiness", "life_history", "plant_height", "leaf_compoundness", "fire_response","photosynthetic_pathway",
-                                "dispersal_syndrome", "dispersers", "reproductive_maturity", "reproductive_maturity_primary", "salt_tolerance", "inundation_tolerance","leaf_area","bud_bank_location","flowering_time","fruiting_time",
-                                "post_fire_recruitment","life_form","root_structure","germination","seed_storage_location","wood_density","fire_and_establishing","storage_organ",
+# Traits marked as definitely of interest by ALA
+ord = data.frame(trait_name = c("plant_growth_form",  "woodiness", "life_history", "plant_height", 
+                                "leaf_compoundness", "fire_response","photosynthetic_pathway",
+                                "dispersal_syndrome", "dispersers", "reproductive_maturity", 
+                                "reproductive_maturity_primary", "salt_tolerance", "inundation_tolerance",
+                                "leaf_area","bud_bank_location","flowering_time","fruiting_time",
+                                "post_fire_recruitment","life_form","root_structure","germination",
+                                "seed_storage_location","wood_density","fire_and_establishing","storage_organ",
                                 "serotiny","physical_defence","growth_habit","ploidy"))
 
-# Traits marked as possibly of interest
-ord1 = data.frame(trait_name = c("sex_type","root_shoot_ratio", "soil_seedbank", "flower_colour","pollination_system","fruit_type" ,"fruit_fleshiness","fruit_dehiscence","seed_shape","seed_dry_mass", "genome_size", "leaf_length","leaf_width","leaf_margin","leaf_phenology",
-                                 "spinescence","parasitic","dispersal_appendage","clonal_spread_mechanism","leaf_type","leaf_shape","leaf_arrangement","leaf_lifespan","seedling_first_leaf","leaf_N_per_dry_mass","leaf_dry_mass",
-                                 "leaf_dry_matter_content","leaf_P_per_dry_mass","leaf_C_per_dry_mass","leaf_K_per_dry_mass","photosynthetic_rate_per_area_saturated","leaf_work_to_punch","bark_thickness" ,"vessel_density","leaf_tannin_per_dry_mass",
+# Traits marked as potentially of interest by ALA
+ord1 = data.frame(trait_name = c("sex_type","root_shoot_ratio", "soil_seedbank", "flower_colour","pollination_system",
+                                 "fruit_type" ,"fruit_fleshiness","fruit_dehiscence","seed_shape","seed_dry_mass", 
+                                 "genome_size", "leaf_length","leaf_width","leaf_margin","leaf_phenology",
+                                 "spinescence","parasitic","dispersal_appendage","clonal_spread_mechanism",
+                                 "leaf_type","leaf_shape","leaf_arrangement","leaf_lifespan","seedling_first_leaf",
+                                 "leaf_N_per_dry_mass","leaf_dry_mass", "leaf_dry_matter_content","leaf_P_per_dry_mass",
+                                 "leaf_C_per_dry_mass","leaf_K_per_dry_mass","photosynthetic_rate_per_area_saturated",
+                                 "leaf_work_to_punch","bark_thickness" ,"vessel_density","leaf_tannin_per_dry_mass",
                                  "chlorophyll_per_dry_mass"))
 
 # Bind them together
 ord = rbind(ord, ord1)
 
-# Add the ranking
-ord$ranking = 1:length(ord$trait_name)
-
-# Filter the data
+# Filter the data to just the data that is needed for species means for ALA
 aus_wide_means = aus_wide %>%
   filter(trait_name %in% ord$trait_name) %>%
   filter(str_detect(life_stage, "adult")) %>%
@@ -49,12 +57,21 @@ aus_wide_means = aus_wide %>%
                                 "literature","field, preserved_specimen", "field_experiment",
                                 "field, field_experiment"))
 
-# change the units for presentation
-aus_wide_means$trait_value = ifelse(aus_wide_means$trait_name == "reproductive_maturity", str_c(aus_wide_means$trait_value, "_years"), aus_wide_means$trait_value)
-aus_wide_means$unit = ifelse(aus_wide_means$trait_name == "reproductive_maturity", NA, aus_wide_means$unit)
+
+######################## Edits to improve presentation #########################
+
+# Edit the units for presentation
+aus_wide_means$trait_value = ifelse(aus_wide_means$trait_name == "reproductive_maturity", 
+                                    str_c(aus_wide_means$trait_value, "_years"), 
+                                    aus_wide_means$trait_value)
+
+aus_wide_means$unit = ifelse(aus_wide_means$trait_name == "reproductive_maturity", 
+                             NA, 
+                             aus_wide_means$unit)
 
 aus_wide_means$unit = gsub("^mo$", "months", aus_wide_means$unit)
 aus_wide_means$unit = gsub("^d$", "days", aus_wide_means$unit)
+
 
 # convert all fruiting times and flowering times to months
 f = aus_wide_means %>% filter(trait_name %in% c("flowering_time", "fruiting_time"))
@@ -70,12 +87,30 @@ for (i in 1:length(f$trait_value)){
 
 aus_wide_means = rbind(aus_wide_means %>% filter(!trait_name %in% c("flowering_time", "fruiting_time")), f)
 
+
+
+################## Adding on trait rankings and definition urls ################
+
+# Add the ranking so the traits will appear in order
+ord$ranking = 1:length(ord$trait_name)
 # Merge in the rankings
 aus_wide_means = left_join(aus_wide_means, ord, by = c("trait_name"))
 
-# Add in a link to the trait definition
-aus_wide_means = aus_wide_means %>% mutate(definition = str_c("https://traitecoevo.github.io/APD/index.html#", str_to_lower(trait_name)))
 
+# Create a definitions link column from the austraits definitions list
+def = austraits$definition
+
+out = data.frame()
+
+for (i in 1:length(unique(aus_wide_means$trait_name))){
+  
+  temp = data.frame(trait_name = unique(aus_wide_means$trait_name)[i], definition = def[[unique(aus_wide_means$trait_name)[i]]]$entity_URI)
+  
+  out = rbind(out, temp)
+  
+}
+
+aus_wide_means = aus_wide_means %>% left_join(out)
 
 
 ######################### Ecocommons trait data prep ############################
@@ -91,8 +126,9 @@ located_data = aus_wide %>%
 
 # a reference for later
 trait_type = located_data %>% dplyr::select(trait_name, unit) %>% unique() %>% mutate(data_type = ifelse(is.na(unit), "categorical", "numeric"))
-################################################################################
 
+
+################################################################################
 
 # We are ready for the API
 
