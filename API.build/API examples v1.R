@@ -20,8 +20,7 @@ austraits <- load_austraits(path="data/austraits", version = get_version_latest(
 
 ############# create the wide table base for most of the outputs ################
 
-aus_wide = as_wide_table(austraits) %>% rename(trait_value = value)
-
+aus_wide = austraits[[1]] %>% rename(trait_value = value)
 
 ############################# ALA trait summary prep ####################################
 
@@ -99,7 +98,9 @@ aus_wide_means = left_join(aus_wide_means, ord, by = c("trait_name"))
 
 
 # Create a definitions link column from the austraits definitions list
-def = austraits$definitions
+
+def = austraits[[2]]
+#def = austraits$definitions
 
 out = data.frame()
 
