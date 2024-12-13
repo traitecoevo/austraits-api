@@ -9,18 +9,33 @@ library(stringr)
 library(readr)
 library(purrr)
 
-remotes::install_github("traitecoevo/austraits")
+#remotes::install_github("traitecoevo/austraits")
 
 library(austraits) 
 
 austraits <- load_austraits(path="data/austraits", version = get_version_latest())
 
 #################################################################################
+aus_wide = austraits %>% as_wide_table() %>% rename(trait_value = value)
 
+
+def = austraits$definitions
+#def = austraits$definitions
+
+out = data.frame()
+
+for (i in 1:length(unique(aus_wide$trait_name))){
+  
+  temp = data.frame(trait_name = unique(aus_wide$trait_name)[i], 
+                    label = def[[unique(aus_wide$trait_name)[i]]]$label,
+                    definition = def[[unique(aus_wide$trait_name)[i]]]$entity_URI)
+  
+  out = rbind(out, temp)
+  
+}
 
 ############# create the wide table base for most of the outputs ################
 
-aus_wide = austraits 
 
 ############################# ALA trait summary prep ####################################
 
