@@ -9,12 +9,12 @@ library(stringr)
 library(readr)
 library(purrr)
 
-#remotes::install_github("traitecoevo/austraits")
+remotes::install_github("traitecoevo/austraits")
 
-#library(austraits) 
+library(austraits) 
 
-#austraits <- load_austraits(path="data/austraits", version = get_version_latest())
-austraits = readRDS("data/austraits/austraits-6.0.0.RDS")
+austraits <- load_austraits(path="data/austraits", version = get_version_latest())
+
 #################################################################################
 
 
