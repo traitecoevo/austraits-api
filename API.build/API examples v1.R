@@ -9,7 +9,7 @@ library(stringr)
 library(readr)
 library(purrr)
 
-#remotes::install_github("traitecoevo/austraits")
+remotes::install_github("traitecoevo/austraits")
 
 library(austraits) 
 
