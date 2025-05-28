@@ -120,7 +120,7 @@ aus_wide_means = rbind(aus_wide_means %>% filter(!trait_name %in% c("flowering_t
 ord$ranking = 1:length(ord$trait_name)
 
 # Merge in the rankings
-aus_wide_means = left_join(aus_wide_means, ord, by = c("trait_name"))
+aus_wide_means = left_join(aus_wide_means, ord, by = c("trait_name")) %>% left_join(out)
 
 
 
