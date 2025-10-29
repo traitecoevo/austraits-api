@@ -11,14 +11,14 @@ info:
 paths:
   /health-check:
     get:
-      summary: "Determine if the API is running and listening as expected"
+      summary: "ALL users: Determine if the API is running and listening as expected"
       responses:
        default:
         description: Default response.
       parameters:
   /trait-count:
     get:
-      summary: "Returns the number of traits per taxa for any given species"
+      summary: "For ALA: Returns the number of traits per taxa for any given species"
       description: This function returns a sentence describing how many unique traits there are for any given taxa from the taxon_name data field in AusTraits., e.g. Eucalyptus saligna
       responses:
        default:
@@ -32,22 +32,10 @@ paths:
           name: APNI_ID
           description: e.g. 2912252 (For Eucalyptus saligna)
           required: false
-  /taxa-count:
-    get:
-      summary: "Returns the number of taxa we have data for per trait"
-      description: This function returns a sentence describing how many species there are for any given trait name in the trait_name data field of AusTraits. Possible values for traits are found at http://traitecoevo.github.io/austraits.build/articles/austraits_database_structure.html
-      responses:
-       default:
-        description: Default response
-      parameters:
-        - in: query
-          name: trait
-          description: e.g. leaf_length
-          required: false
   /trait-summary:
     get:
-      summary: "Returns the average trait value per trait for a given species"
-      description: This function returns a table of summarised trait data (a simple mean value for numerical traits and unique categorical trait values) for a given taxa from the taxon_name data field in AusTraits
+      summary: "For ALA: Returns the average trait value per trait for a given species"
+      description: This function returns a table of summarised trait data (a simple range and mean value for numerical traits and unique categorical trait values) for a given taxa from the taxon_name data field in AusTraits
       responses:
        default:
         description: Default response
@@ -64,123 +52,132 @@ paths:
           required: false
           schema:
             type: string
-  /taxon-data:
-    get:
-      summary: "Returns a table of the complete data available for a given taxa"
-      description: This function returns a wider table of raw trait data (the combined traits and methods tables) for a given taxa. The data can be further filtered by two other parameters - type_of_collection (collection_type in AusTraits) and type_of_value (value_type in AusTraits). Terms are string matched - you just need to enter part of the string to filter properly
-      responses:
-       default:
-        description: Default response
-      parameters:
-        - in: query
-          name: taxon
-          description: e.g. Angophora costata
-          required: false
-          schema:
-            type: string
-        - in: query
-          name: has_coordinates
-          description: only get data with coordinates e.g. yes
-          required: false
-          schema:
-            type: string
-        - in: query
-
-          name: field_only
-          description: e.g. only get data that was collected in the field e.g. yes
-
-          required: false
-          schema:
-            type: string
-  /taxa-data:
-      post:
-        summary: "Returns a table of the complete data available for multiple taxa"
-        description: This function returns a wider table of raw trait data (the combined traits and methods tables) for multiple taxa. The data can be further filtered by two other parameters - type_of_collection (collection_type in AusTraits) and type_of_value (value_type in AusTraits). Terms are string matched - you just need to enter part of the string to filter properly
-        responses:
-         default:
-          description: Default response
-        parameters:
-          - in: query
-            name: has_coordinates
-            description: only get data with coordinates e.g. yes
-            required: false
-            schema:
-              type: string
-          - in: query
-            name: field_only
-            description: e.g. only get data that was collected in the field e.g. yes
-            required: false
-            schema:
-              type: string
-        requestBody:
-         description: A named array of species names
-         required: true
-         content:
-          application/json:
-           schema:
-            type: object
-            properties:
-             taxa_list:
-                type: character
-                example: ["Acacia aneura","Acacia rostellifera","Acacia tetragonophylla"]
-            trait_list:
-                type: character
-                example: ["leaf_length", "leaf_width"]
   /download-taxon-data:
     get:
-      summary: "Downloads the csv of the raw AusTraits data used to make the trait summaries"
+      summary: "For ALA: Downloads the csv of the raw AusTraits data used to make the trait summaries (also includes all other trait data for that taxon_name)"
       description: This function returns a table of the trait data for a given taxa from the taxon_name data field in AusTraits
       responses:
        default:
         description: Default response
       parameters:
         - in: query
-
           name: taxon
           description: e.g. Eucalyptus saligna
-
           required: false
           schema:
             type: string
         - in: query
-
           name: APNI_ID
           description: e.g. e.g. 2912252 (For Eucalyptus saligna)
-
           required: false
           schema:
             type: string
-
-  /download-taxa-data:
-    post:
-      summary: "Returns a csv download of the complete data available for multiple taxa names"
-      description: This function returns a download of the data for a list of taxa names in a csv file. You can trial different species names in the Swagger window, but default values are given for demonstration purposes
+  /taxa-list:
+      post:
+        summary: "For Ecocommons: Returns the names unique taxa for a list of traits within the subset of austraits data that is georeferenced"
+        description: This function returns an array of unique species that have data for each trait specified. Possible values for traits are found at http://traitecoevo.github.io/austraits.build/articles/austraits_database_structure.html
+        responses:
+         default:
+          description: Default response
+        requestBody:
+          description: A named array of trait names
+          required: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                         traits:
+                          type: array
+                          example: ["seed_mass","seed_length","seed_volume"]
+  /trait-list:
+      post:
+        summary: "For Ecocommons: Returns the names unique traits for a list of taxa within the subset of austraits data that is georeferenced"
+        description: This function returns an array of unique traits that exist in AusTraits for each taxa specified within the subset of austraits data that is georeferenced.
+        responses:
+         default:
+          description: Default response
+        requestBody:
+          description: A named array of taxa names
+          required: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                         taxa:
+                          type: array
+                          example: ["Acacia aneura","Banksia serrata","Eucalyptus saligna"]
+  /taxa-autocomplete:
+    get:
+      summary: "For Ecocommons: Returns the species that begin with a given text string within the subset of austraits data that is georeferenced"
+      description: This function returns taxon names that begin with a given text string within the subset of austraits data that is georeferenced
       responses:
        default:
         description: Default response
       parameters:
         - in: query
-          name: has_coordinates
-          description: only get data with coordinates e.g. Yes
+          name: text_string
+          description: e.g. Eucal
           required: false
           schema:
             type: string
+  /trait-autocomplete:
+    get:
+      summary: "For Ecocommons: Returns the trait that begins with a given text string within the subset of austraits data that is georeferenced"
+      description: This function returns trait names that begin with a given text string within the subset of austraits data that is georeferenced
+      responses:
+        default:
+        description: Default response
+      parameters:
         - in: query
-          name: field_only
-          description: e.g. only get data that was collected in the field e.g. Yes
+          name: text_string
+          description: e.g. leaf
           required: false
           schema:
             type: string
-      requestBody:
-        description: A named array of species names
-        required: true
-        content:
-         application/json:
-          schema:
-           type: object
-           properties:
-            taxa_list:
-              type: character
+  /trait-data:
+      post:
+        summary: "For Ecocommons: Returns a table of the complete data available for multiple selected taxa and traits ithin the subset of austraits data that is georeferenced"
+        description: This function returns a wider table of raw trait data for multiple taxa.
+        responses:
+         default:
+          description: Default response
+        parameters: []
+        requestBody:
+          description: A named array of species names
+          required: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                         taxa:
+                          type: array
+                          example: ["Acacia aneura","Acacia rostellifera","Acacia tetragonophylla"]
+                         traits:
+                          type: array
+                          example: ["leaf_length", "leaf_width"]
 
-              example: ["Acacia aneura","Acacia rostellifera","Acacia tetragonophylla"]
-
+  /download-trait-data:
+       post:
+        summary: "For Ecocommons: Returns a csv download of the complete austraits data available for multiple taxa names and traits"
+        description: This function returns a download of the data for a list of taxa names and traits.
+        responses:
+         default:
+          description: Default response
+        parameters: []
+        requestBody:
+          description: A named array of species names and a named array of trait names
+          required: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                         taxa:
+                          type: array
+                          example: ["Acacia aneura","Acacia rostellifera","Acacia tetragonophylla"]
+                         traits:
+                          type: array
+                          example: ["leaf_length", "leaf_width"]
