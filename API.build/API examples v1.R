@@ -111,7 +111,7 @@ function(taxon = "", APNI_ID = ""){
     # If the summary has no traits but some exist in AusTraits
   }else if(x1 == 0 & x != 0){
 
-    a = data.frame(y, x1, z, print(y, " has data for ", y, " traits in the AusTraits database. These are accessible via the download CSV button or alternatively the entire database can be accessed at doi.org/10.5281/zenodo.10156222"))
+    a = data.frame(y, x1, z, paste0(y, " has data for ", x, " traits in the AusTraits database. These are accessible via the download CSV button or alternatively the entire database can be accessed at doi.org/10.5281/zenodo.10156222"))
 
     names(a) = c("taxon", "summary", "AusTraits", "explanation")
 
@@ -121,7 +121,7 @@ function(taxon = "", APNI_ID = ""){
   }else{
 
 
-    a = data.frame(y, x1, z, print("There is currently no data for the taxon name you searched for in the AusTraits database. Search for another species name or access the entire database at doi.org/10.5281/zenodo.10156222"))
+    a = data.frame(y, x1, z, "There is currently no data for the taxon name you searched for in the AusTraits database. Search for another species name or access the entire database at doi.org/10.5281/zenodo.10156222")
 
     names(a) = c("taxon", "summary", "AusTraits", "explanation")
 
@@ -356,7 +356,16 @@ function(taxon = "", APNI_ID = ""){
   data = data %>% mutate_all(coalesce, "")
 
 
-  filename = str_c("AusTraits_", data$taxon_name[1], "_",  gsub("\\:", "-", Sys.time()), ".csv")
+  # plumber rejects a Content-Disposition filename that contains a quote or is
+  # NA, so reduce the taxon name to characters that are safe in both an HTTP
+  # header and a filename, and fall back to the query when nothing matched
+  taxon_label = data$taxon_name[1]
+  if (is.na(taxon_label)) taxon_label = str_c(taxon, APNI_ID)
+  taxon_label = gsub("[^A-Za-z0-9._-]+", "_", taxon_label)
+  taxon_label = gsub("^_|_$", "", taxon_label)
+  if (taxon_label == "") taxon_label = "no_data"
+
+  filename = str_c("AusTraits_", taxon_label, "_",  gsub("\\:", "-", Sys.time()), ".csv")
   filename = gsub(" ", "_", filename)
 
   #convert the subset to a csv
