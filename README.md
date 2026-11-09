@@ -8,6 +8,8 @@ The endpoints let users subset the data by taxon and trait, return the size of a
 conditions (including filtering on categorical columns), and download the resulting data. Developing
 the API is an iterative process driven by our partners' needs, so endpoints may evolve.
 
+**Live API:** endpoints are served under `https://app.austraits.org/api/` (for example <https://app.austraits.org/api/health-check>). Interactive Swagger documentation, where you can try each endpoint, is at **<https://app.austraits.org/api/__docs__/>**.
+
 ## Setup
 
 ```r
@@ -52,9 +54,13 @@ the handler.
 
 ## Deployment
 
-This repository holds the API code. The production deployment (containerisation and hosting on the
-ARDC Nectar Research Cloud) lives in
-[`austraits-api-nectar`](https://github.com/traitecoevo/austraits-api-nectar).
+The production API is served under `https://app.austraits.org/api/`, on the same AWS server as the AusTraits Shiny apps at `app.austraits.org`. Nginx routes requests under `/api/` to this plumber service, which runs as a system service started from `api_wrapper.R`. Deployment is manual: copy the updated code (and, for a new AusTraits release, the data file produced by `API.build/dataset_prep.R`) to the server and restart the service. After a deploy, confirm the API is up with:
+
+```sh
+curl https://app.austraits.org/api/health-check
+```
+
+The API was previously hosted on the ARDC Nectar Research Cloud from a separate `austraits-api-nectar` repository; that deployment is no longer used.
 
 ## How to cite
 
