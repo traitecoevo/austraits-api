@@ -54,7 +54,7 @@ the handler.
 
 ## Deployment
 
-The production API is served under `https://app.austraits.org/api/`, on the same AWS server as the AusTraits Shiny apps at `app.austraits.org`. Nginx routes requests under `/api/` to this plumber service, which runs as a system service started from `api_wrapper.R`. Deployment is manual: copy the updated code (and, for a new AusTraits release, the data file produced by `API.build/dataset_prep.R`) to the server and restart the service. After a deploy, confirm the API is up with:
+The production API is served under `https://app.austraits.org/api/`, as a long-running plumber service started from `api_wrapper.R`. Deployment is manual: copy the updated code (and, for a new AusTraits release, the data file produced by `API.build/dataset_prep.R`) to the server and restart the service. After a deploy, confirm the API is up with:
 
 ```sh
 curl https://app.austraits.org/api/health-check
