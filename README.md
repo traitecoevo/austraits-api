@@ -26,7 +26,7 @@ The API serves one AusTraits release, from `API.build/data/austraits_processed_A
 2. From inside `API.build/`, run `Rscript dataset_prep.R` (about 3 minutes). It loads the release and the observed species means published with it, using `austraits::load_austraits(version = ver)` and `load_austraits(version = ver, means = TRUE)`; files already in `API.build/data/austraits/` are not downloaded again.
 3. Check the response shape against the previous release: run the previous code and data on one port and the new on another, then `Rscript compare_api_versions.R <old URL> <new URL> 200` from `API.build/`.
 
-`/trait-summary` and the summary count in `/trait-count` serve those published means, formatted as these endpoints have always returned them: one value per species (subspecies, varieties and forms take their species' value), the geometric observed mean for numeric traits (arithmetic for traits on a signed scale), and for categorical traits every value recorded, with `*` when records disagree.
+`/trait-summary` and the summary count in `/trait-count` serve those published means, formatted as these endpoints have always returned them: one value per species (subspecies, varieties and forms take their species' value), the geometric observed mean for numeric traits (arithmetic for traits on a signed scale), and for categorical traits every value recorded, with `*` when there is more than one (for flowering and fruiting months, when the records mark different months).
 
 ## Run the API
 
