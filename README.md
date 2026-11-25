@@ -50,7 +50,8 @@ Endpoints are defined in `API.build/API examples v1.R`:
 |--------|------|-------------|
 | `GET`/`HEAD` | `/health-check` | Liveness check — is the API running? |
 | `GET` | `/trait-count` | Count of unique traits for a given taxon (by `taxon` name or `APNI_ID`). |
-| `GET` | `/trait-summary` | Summarised trait data table for a given taxon. |
+| `GET` | `/species-means` | The observed species means published with the AusTraits release for a taxon, as published (see below). |
+| `GET` | `/trait-summary` | Summarised trait data table for a given taxon. **Deprecated:** use `/species-means`. |
 | `GET` | `/download-taxon-data` | Trait data for a taxon, served as CSV. |
 | `POST` | `/taxa-list` | Unique species for a given trait name. |
 | `POST` | `/trait-list` | Unique traits for a given set of inputs. |
@@ -58,6 +59,12 @@ Endpoints are defined in `API.build/API examples v1.R`:
 | `GET` | `/trait-autocomplete` | Autocomplete suggestions for trait names. |
 | `POST` | `/trait-data` | Full data table for multiple species names and traits. |
 | `POST` | `/download-trait-data` | Full data table for multiple taxa, served as CSV. |
+
+### `/species-means` replaces `/trait-summary`
+
+`/species-means?taxon=Eucalyptus%20saligna` (or `APNI_ID=2912252`; optionally `traits=plant_height,leaf_area`) returns the observed species means published with the AusTraits release, one row per trait (`means`), with the columns of the release's observed-means dictionary (`austraits-<version>-observed-means-dictionary.csv` on Zenodo), plus each trait's `trait_label` and `definition` URI: the value and how it was found (`estimate_type`, `method`), its range, the evidence behind it (`n_records`, `n_datasets`, `reliability`) and the datasets and references it comes from. Numbers are sent unrounded. The response also gives `data_version`, `doi`, the `query`, and `taxon_name` (the name the means are filed under, or `null` when there are none); `species_of_query` is `true` when a subspecies, variety or form is answered with its species' means.
+
+`/trait-summary` serves the same means reformatted (rounded, as strings, categorical values joined) for the ALA trait list. It is deprecated: partners are asked to move to `/species-means`, after which `/trait-summary` will be retired.
 
 A `logger` request filter records information about each incoming request before it is forwarded to
 the handler.

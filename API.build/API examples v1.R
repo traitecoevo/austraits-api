@@ -181,6 +181,46 @@ function(taxon = "", APNI_ID = ""){
 }
 
 
+################################################################################
+# 1.2.1 The observed species means published with the AusTraits release
+
+#* @apiDescription
+#* Return the observed species means published with the AusTraits release for a taxon, as published: one row per trait, with the columns described in the release's observed-means dictionary. Replaces /trait-summary, which serves the same means reformatted.
+
+#* @param taxon e.g. Eucalyptus saligna
+#* @param APNI_ID e.g. 2912252 (For Eucalyptus saligna)
+#* @param traits Optional comma-separated trait names, e.g. plant_height,leaf_area
+#* @serializer json list(digits = NA, na = "null", auto_unbox = TRUE)
+#* @get /species-means
+
+function(taxon = "", APNI_ID = "", traits = ""){
+
+  query = query_taxon(taxon, APNI_ID)
+  name = means_taxon(query, species_means)
+  found = name != "" && name %in% species_means$taxon_name
+
+  # traits=a,b and traits=a&traits=b both work
+  traits = str_trim(unlist(str_split(traits, ",")))
+  traits = traits[traits != ""]
+
+  means = species_means %>% filter(taxon_name == name)
+  if (length(traits) > 0){
+    means = means %>% filter(trait_name %in% traits)
+  }
+
+  list(
+    data_version = data_version,
+    doi = data_doi,
+    query = list(taxon = taxon[1], APNI_ID = APNI_ID[1], traits = paste(traits, collapse = ",")),
+    # The name the means are filed under; null when the taxon has none
+    taxon_name = if (found) name else NA_character_,
+    # TRUE when a subspecies, variety or form is answered with its species' means
+    species_of_query = found && name != query,
+    means = means
+  )
+}
+
+
 #################################################################################
 # 1.3 Returns a table of the raw data used to calculate the species means
 #* @param taxon e.g. Angophora costata
