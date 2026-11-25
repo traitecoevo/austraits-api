@@ -9,8 +9,32 @@ library(stringr)
 library(readr)
 library(purrr)
 
-# load data
-list2env(readRDS("data/austraits_processed_API_v7.0.0.rds"), envir = .GlobalEnv)
+# load data: the file written by dataset_prep.R for this AusTraits release
+data_version <- "8.0.0"
+list2env(readRDS(sprintf("data/austraits_processed_API_v%s.rds", data_version)), envir = .GlobalEnv)
+
+# The taxon a query names: the taxon given, or the taxon whose APNI identifier
+# (the number ending taxon_id) is given
+query_taxon = function(taxon = "", APNI_ID = ""){
+  if (taxon != "") return(taxon)
+  if (APNI_ID != ""){
+    x = taxon_lookup$taxon_name[taxon_lookup$APNI_ID == as.character(APNI_ID)]
+    if (length(x) > 0) return(x[1])
+  }
+  ""
+}
+
+# The species-mean rows for a taxon. Means are per species: a subspecies,
+# variety or form with no rows of its own gets its species' rows, named as
+# the species
+summary_rows = function(taxon){
+  rows = trait_summary %>% filter(taxon_name == taxon)
+  if (nrow(rows) == 0 && taxon != ""){
+    species = str_remove(taxon, "\\s+(subsp\\.|var\\.|f\\.)\\s.*$")
+    if (species != taxon) rows = trait_summary %>% filter(taxon_name == species)
+  }
+  rows
+}
 
 ################################################################################
 
@@ -62,72 +86,44 @@ function(req){
 function(taxon = "", APNI_ID = ""){
 
   # convert any APNI ID queries into a taxon_name string
-  if (taxon != ""){
+  taxon = query_taxon(taxon, APNI_ID)
 
-    taxon = taxon
+  # Traits in AusTraits for this taxon
+  traits_all = unique(aus_wide$trait_name[aus_wide$taxon_name == taxon])
+  x = length(traits_all)
 
-  }else if (APNI_ID != ""){
-
-    taxon = unique(aus_wide$taxon_name[grepl(as.character(APNI_ID), aus_wide$taxon_id)])
-
-  }
-
-
-  #Number of traits in AusTraits for this species
-
-  x = aus_wide %>%
-
-    #get the rows where the taxon_name field is equal to the entered value
-    filter(taxon_name == taxon) %>%
-
-    #select and count the number of unique trait_name values
-    select(trait_name) %>%
-    distinct() %>% count() %>% unlist() %>% as.integer()
-
-  #Number of summarised traits for this species
-
-  x1 = aus_wide_means %>%
-    #get the rows where the taxon_name field is equal to the entered value
-    filter(taxon_name == taxon) %>%
-    #select and count the number of unique trait_name values
-    select(trait_name) %>%
-    distinct() %>% count() %>% unlist() %>% as.integer()
+  # Traits summarised by /trait-summary for this taxon
+  traits_summary = unique(summary_rows(taxon)$trait_name)
+  x1 = length(traits_summary)
 
   y = taxon
 
-  z = x - x1
+  # Further traits with data: those not in the summary
+  z = length(setdiff(traits_all, traits_summary))
 
+  database = str_c("doi.org/", data_doi)
 
   #Create the responses
   # If the summary contains traits...
   if(x1 != 0){
 
-    a = data.frame(y, x1, z, paste0("There are ", x1, " traits available for ", y, ", with data for ", z, " further traits in the AusTraits database. These are accessible via the download CSV button or alternatively the entire database can be accessed at doi.org/10.5281/zenodo.10156222"))
-
-    names(a) = c("taxon", "summary", "AusTraits", "explanation")
-
-    return(a)
+    a = data.frame(y, x1, z, paste0("There are ", x1, " traits available for ", y, ", with data for ", z, " further traits in the AusTraits database. These are accessible via the download CSV button or alternatively the entire database can be accessed at ", database))
 
     # If the summary has no traits but some exist in AusTraits
-  }else if(x1 == 0 & x != 0){
+  }else if(x != 0){
 
-    a = data.frame(y, x1, z, paste0(y, " has data for ", x, " traits in the AusTraits database. These are accessible via the download CSV button or alternatively the entire database can be accessed at doi.org/10.5281/zenodo.10156222"))
-
-    names(a) = c("taxon", "summary", "AusTraits", "explanation")
-
-    return(a)
+    a = data.frame(y, x1, z, paste0(y, " has data for ", x, " traits in the AusTraits database. These are accessible via the download CSV button or alternatively the entire database can be accessed at ", database))
 
     # If there is no data for the taxon in AusTraits
   }else{
 
-
-    a = data.frame(y, x1, z, "There is currently no data for the taxon name you searched for in the AusTraits database. Search for another species name or access the entire database at doi.org/10.5281/zenodo.10156222")
-
-    names(a) = c("taxon", "summary", "AusTraits", "explanation")
-
-    return(a)
+    a = data.frame(y, x1, z, paste0("There is currently no data for the taxon name you searched for in the AusTraits database. Search for another species name or access the entire database at ", database))
 
   }
+
+  names(a) = c("taxon", "summary", "AusTraits", "explanation")
+
+  a
 }
 
 ################################################################################
@@ -142,194 +138,35 @@ function(taxon = "", APNI_ID = ""){
 
 function(taxon = "", APNI_ID = ""){
 
-  if (taxon != ""){
+  # The rows are precomputed by dataset_prep.R from the observed species means
+  # published with the AusTraits release
+  data = summary_rows(query_taxon(taxon, APNI_ID))
 
-    data = aus_wide_means %>% filter(taxon_name == taxon)
+  ###################### The categorical trait summary  ####################
 
-  }else if (APNI_ID != ""){
+  output = data %>%
+    filter(block == "categorical") %>%
+    arrange(ranking) %>%
+    select(taxon_name, trait_name = label, definition, trait_values)
 
-    data = aus_wide_means %>% filter(str_detect(taxon_id, as.character(APNI_ID)))
+  ###################### The numeric trait summary  ####################
 
-    taxon = data$taxon_name[1]
+  output1 = data %>%
+    filter(block == "numeric") %>%
+    arrange(ranking) %>%
+    select(taxon_name, trait_name = label, definition, min, mean, max, unit)
 
+  # only return the data if data exists
+  if (nrow(output) == 0 & nrow(output1) == 0){
+    return("No summary data can be found for this taxon.")
   }
 
+  #Present as two names tables, categorical and numeric traits
+  # (an empty table is sent as [], as before)
+  if (nrow(output) == 0) output = list()
+  if (nrow(output1) == 0) output1 = list()
 
-  ###################### Make the categorical trait summary  ####################
-
-  # subset the data to the desired taxon name and get a vector of the available categorical traits
-  cat_traits = data %>% filter(is.na(unit)) %>% select(taxon_name, label, trait_name, definition, ranking) %>% arrange(ranking) %>% unique()
-
-
-  if (nrow(cat_traits) != 0){
-
-    #create a blank dataframe
-    output = data.frame()
-
-    # for each of the categorical traits...
-    for (i in 1:length(cat_traits$trait_name)){
-
-      # get austraits data for this taxa and the trait, remove NA values and make a table of the counts for each value
-      x = data %>% filter(trait_name == cat_traits$trait_name[i] & is.na(trait_value)==F) %>% select(trait_value) %>% unique()
-
-      # make a character string made up of each unique trait value
-      y = x$trait_value %>% str_split(pattern = " ") %>% unlist() %>% sort() %>% str_c() %>% unique()
-      y = paste0(y, collapse = ", ")
-
-      # make a row of data made up of the taxon name, the trait name and the trait value character above (y). The units will be blank.
-      z = data.frame(taxon_name = taxon, trait_name = cat_traits$label[i], definition = cat_traits$definition[i], trait_values = y)
-
-      #glue it to the dataframe
-      output = rbind(output, z)
-
-    }
-
-    output$trait_values = gsub("_", " ", output$trait_values)
-    output$asterisk = ifelse(str_detect(output$trait_values, ","), "*", "")
-
-    # clean up flowering times
-    if ("Flowering time, by month" %in% output$trait_name){
-      flower = output$trait_values[output$trait_name == "Flowering time, by month"]
-      flower = gsub(",", "", flower)
-      flower = unlist(str_split(flower, pattern = " "))
-      flower = flower %>% unique()
-      flower = flower[match(month, flower)]
-      flower = paste(flower[complete.cases(flower)], collapse = ", ")
-      output$trait_values[output$trait_name == "Flowering time, by month"] = flower
-    }
-
-    if ("Fruiting time, by month" %in% output$trait_name){
-      fruit = output$trait_values[output$trait_name == "Fruiting time, by month"]
-      fruit = gsub(",", "", fruit)
-      fruit = unlist(str_split(fruit, pattern = " "))
-      fruit = fruit %>% unique()
-      fruit = fruit[match(month, fruit)]
-      fruit = paste(fruit[complete.cases(fruit)], collapse = ", ")
-      output$trait_values[output$trait_name == "Fruiting time, by month"] = fruit
-
-    }
-
-    output = output %>% mutate(trait_values = str_c(trait_values,"  ", asterisk)) %>% select(-asterisk) %>% mutate(trait_values = str_trim(trait_values))
-    output = output %>% filter(trait_values != "")
-    
-  }else{
-
-    output = list()
-  }
-  # end of cat traits table
-
-  ###################### Make the numeric trait summary  ####################
-
-  # Create a reference list of taxon-trait combinations and arrange them by ranking
-  num_traits = data  %>% filter(!is.na(unit)) %>% select(taxon_name, label, trait_name, definition, unit, ranking) %>% arrange(ranking) %>% unique()
-
-  if( nrow(num_traits) != 0){
-
-    #create a blank dataframe
-    output1 = data.frame()
-
-    # for each of the numeric traits...
-    for (i in 1:length(num_traits$trait_name)){
-
-      # get the data for each numeric trait, group by the value type and find the mean
-      # remove wrongly entered data and get numeric data only data only
-      a = data %>% filter(taxon_name == taxon) %>%
-        filter(trait_name == num_traits$trait_name[i]) %>%
-        filter(!is.na(unit)) %>%
-        mutate(trait_value = as.numeric(trait_value)) %>%
-        filter(!is.na(trait_value))
-
-
-      ##############################################################################################
-
-      # create a dataset of unknown sites
-      # calculate for mean and raw. Doesn't matter whether they have a location_d or not - the NA will count as a location and the dataset_id is unique
-      data_means = a %>% filter(value_type %in% c("mean", "raw"))  %>% group_by(dataset_id) %>% summarise(mean = mean(trait_value))
-
-      # Now create a mean via the expert mins and maxes
-      expert = a %>% filter(value_type %in% c("minimum", "maximum"), basis_of_record %in% c("preserved_specimen", "literature"))
-
-      # make an average if a range is given
-      experts = expert %>% group_by(dataset_id) %>% summarise(mean = mean(trait_value), n = n())
-      # make sure your mean comes from at least two observations. Should never be three because why would you have more than one estimate of a max or min per dataset?
-      experts = experts %>% filter(n == 2) %>% select(-n)
-      # stick them together with the other sites
-      site_means = rbind(data_means, experts)
-
-      # take the mean, min and max of sites
-      overall_mean = data.frame(taxon_name = num_traits$taxon_name[i],
-
-                                trait_name = num_traits$label[i],
-
-                                definition = num_traits$definition[i],
-
-                                mean = mean(site_means$mean, na.rm = T),
-
-                                unit = num_traits$unit[i]
-
-      )
-
-
-      ##################### Min and Max temporary patch ##############################
-      # If theres more than 1 observation:
-
-      if (nrow(a) > 1 & length(unique(a$value_type)) > 1){
-
-        overall_mean$min = min(a$trait_value)
-        overall_mean$max = max(a$trait_value)
-
-      }else if ( unique(a$value_type) == "maximum"){
-        overall_mean$min = NA
-        overall_mean$max = max(a$trait_value)
-      }else{
-        overall_mean$min = NA
-        overall_mean$max = NA
-      }
-
-      # stick it to the previous observation
-      output1 = rbind(output1, overall_mean)
-
-
-    }
-
-    ################################## Final changes before sending ##################
-
-    output1 = output1 %>% select(taxon_name, trait_name, definition, min, mean, max, unit)
-
-    # I'm (incorrectly) rounding to 3 significant figures over all traits. A more sophisticated function is needed
-    output1$mean = signif(as.numeric(output1$mean), 3)
-    output1$min = signif(as.numeric(output1$min), 3)
-    output1$max = signif(as.numeric(output1$max), 3)
-
-    # take out the NAs
-    output1 = output1 %>% mutate(across(min:max, as.character)) %>% replace_na(list(min = "", mean = "", max = ""))
-
-    output1$mean[output1$mean == "NaN"] = ""
-
-  }else{
-
-    output1 = list()
-  }
-
-  # end of numeric traits table
-
-
-
-
-
-  # only print the data if data exists
-  if (is.data.frame(output) | is.data.frame(output1)){
-
-    #Present as two names tables, categorical and numeric traits
-    summary = list(categorical_traits = output, numeric_traits = output1)
-
-    print(summary)
-
-  }else{
-
-    print("No summary data can be found for this taxon.")
-
-  }
+  list(categorical_traits = output, numeric_traits = output1)
 }
 
 
@@ -342,16 +179,7 @@ function(taxon = "", APNI_ID = ""){
 
 function(taxon = "", APNI_ID = ""){
 
-
-  if (taxon != ""){
-
-    data = aus_wide %>% filter(taxon_name == taxon)
-
-  }else if (APNI_ID != ""){
-
-    data = aus_wide %>% filter(str_detect(taxon_id, as.character(APNI_ID)))
-
-  }
+  data = aus_wide %>% filter(taxon_name == query_taxon(taxon, APNI_ID))
 
   data = data %>% mutate_all(coalesce, "")
 

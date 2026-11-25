@@ -16,7 +16,7 @@ technical backgrounds.
   `#*`), including `/health-check`, `/trait-count`, `/trait-summary`, `/download-taxon-data`,
   `/taxa-list`, `/trait-list`, `/taxa-autocomplete`, `/trait-autocomplete`, `/trait-data`, and
   `/download-trait-data`. `API.build/API examples v1.yml` is the accompanying OpenAPI/spec file.
-- **Data prep:** `API.build/dataset_prep.R` prepares the data the endpoints serve. The served data
+- **Data prep:** `API.build/dataset_prep.R` prepares the data the endpoints serve, for the release set in `ver` (keep `data_version` in the endpoints file in step). `/trait-summary` serves the observed species means published with the release, precomputed there as `trait_summary`; `compare_api_versions.R` checks a new release keeps the response shape (README "Data"). The served data
   lives under `API.build/data/`, which is **git-ignored** (see `.gitignore`) — it is not committed.
 - **Usage analysis:** `API activity.R` is a standalone script for downloading and summarising the
   API activity log (object-storage hit logs); not part of the running service.

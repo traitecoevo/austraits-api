@@ -11,30 +11,39 @@ library(purrr)
 
 #remotes::install_github("traitecoevo/austraits", dependencies = FALSE, build_vignettes = FALSE)
 
-library(austraits)
+library(austraits) # >= 4.0.1, which loads the observed means published with each release
 
-ver <- "7.0.0" # get_version_latest()
+# Run from inside API.build/. update = TRUE refreshes the saved list of releases;
+# the release files are downloaded only if they are not already in data/austraits/
+ver <- "8.0.0"
 
 austraits <- load_austraits(path = "data/austraits", version = ver)
+
+# Observed species means published with the release
+# (austraits-<ver>-observed-means; columns described in its -dictionary.csv)
+austraits_means <- load_austraits(path = "data/austraits", version = ver, means = TRUE, update = FALSE)
+
+# The release's own DOI, cited in the API's messages
+data_doi <- get_versions(path = "data/austraits", update = FALSE) %>%
+  filter(version == ver) %>% pull(doi)
 
 #################################################################################
 aus_wide = austraits %>% as_wide_table() %>% rename(trait_value = value)
 
 
 def = austraits$definitions
-#def = austraits$definitions
 
-out = data.frame()
+# Trait labels and definition URIs, served by /trait-summary
+out = tibble(trait_name = unique(aus_wide$trait_name)) %>%
+  mutate(label = map_chr(trait_name, ~ def[[.x]]$label),
+         definition = map_chr(trait_name, ~ def[[.x]]$entity_URI))
 
-for (i in 1:length(unique(aus_wide$trait_name))){
-  
-  temp = data.frame(trait_name = unique(aus_wide$trait_name)[i], 
-                    label = def[[unique(aus_wide$trait_name)[i]]]$label,
-                    definition = def[[unique(aus_wide$trait_name)[i]]]$entity_URI)
-  
-  out = rbind(out, temp)
-  
-}
+# Taxon name for each APNI identifier, for the APNI_ID queries
+# (taxon_id is a URI ending in the identifier)
+taxon_lookup = aus_wide %>%
+  distinct(taxon_name, taxon_id) %>%
+  filter(!is.na(taxon_id)) %>%
+  mutate(APNI_ID = str_extract(taxon_id, "[0-9]+$"))
 
 ############# create the wide table base for most of the outputs ################
 
@@ -66,64 +75,74 @@ ord1 = data.frame(trait_name = c("sex_type","root_shoot_ratio", "flower_colour",
 # Bind them together
 ord = rbind(ord, ord1)
 
-# Filter the data to just the data that is needed for species means for ALA
-aus_wide_means = aus_wide %>%
-  filter(trait_name %in% ord$trait_name) %>%
-  filter(str_detect(life_stage, "adult")) %>%
-  filter(basis_of_record %in% c("preserved_specimen", 
-                                "field", 
-                                "literature field",
-                                "literature",
-                                "field preserved_specimen", 
-                                "field_experiment",
-                                "field field_experiment",
-                                "field preserved_specimen",
-                                "literature field field_experiment"))
-
-
-######################## Edits to improve presentation #########################
-
-aus_wide_means$trait_value = ifelse(str_detect(aus_wide_means$trait_value, "[0-9]+\\.([0-9]){2}+"), str_extract(aus_wide_means$trait_value, "[0-9]+\\.([0-9]){2}"),aus_wide_means$trait_value)
-
-# Edit the units for presentation
-aus_wide_means$trait_value = ifelse(aus_wide_means$trait_name == "reproductive_maturity"&!str_detect(aus_wide_means$trait_value, "--"), 
-                                    str_c(aus_wide_means$trait_value, "_years"), 
-                                    aus_wide_means$trait_value)
-
-aus_wide_means$unit = ifelse(aus_wide_means$trait_name == "reproductive_maturity", 
-                             NA, 
-                             aus_wide_means$unit)
-
-aus_wide_means$unit = gsub("^mo$", "months", aus_wide_means$unit)
-aus_wide_means$unit = gsub("^d$", "days", aus_wide_means$unit)
-
-#
-
-
-# convert all fruiting times and flowering times to months
-f = aus_wide_means %>% filter(trait_name %in% c("flowering_time", "fruiting_time"))
-
 month = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
-
-for (i in 1:length(f$trait_value)){
-  f1      <- unlist(strsplit(f$trait_value[i],""))
-  f2 = ifelse(f1 == "y", month, NA)
-  f3 = paste0(f2[complete.cases(f2)], collapse = "_")
-  f$trait_value[i] = f3
-}
-
-aus_wide_means = rbind(aus_wide_means %>% filter(!trait_name %in% c("flowering_time", "fruiting_time")), f)
-
-
-
-########### Adding on trait rankings, definition urls and trait labels ################
 
 # Add the ranking so the traits will appear in order
 ord$ranking = 1:length(ord$trait_name)
 
-# Merge in the rankings
-aus_wide_means = left_join(aus_wide_means, ord, by = c("trait_name")) %>% left_join(out)
+# /trait-summary serves the published observed means, formatted as the
+# endpoint has always returned them. Means are per species: subspecies,
+# varieties and forms are rolled up to their species.
+summary_means = austraits_means %>%
+  filter(trait_name %in% ord$trait_name) %>%
+  inner_join(ord, by = "trait_name") %>%
+  left_join(out, by = "trait_name")
 
+# Values and counts from value_count, "value (n); value (n)"
+split_value_count = function(value_count) {
+  parts = str_split(value_count, "; ")
+  list(values = map(parts, ~ str_remove(.x, " \\([0-9]+\\)$")),
+       counts = map(parts, ~ as.integer(str_match(.x, "\\(([0-9]+)\\)$")[, 2])))
+}
+
+# Categorical traits: the values recorded, sorted and joined by ", ", with
+# "  *" appended when the records disagree. Months are listed in calendar
+# order (value_count already is); the records disagree when any month is
+# marked by fewer than all of them.
+format_categorical = function(trait_name, value_count, n_records) {
+  vc = split_value_count(value_count)
+  out = pmap_chr(list(trait_name, vc$values, vc$counts, n_records), function(t, v, n, total) {
+    if (t %in% c("flowering_time", "fruiting_time")) {
+      disagree = any(n < total)
+    } else {
+      v = sort(unique(v))
+      disagree = length(v) > 1
+    }
+    v = paste(gsub("_", " ", v), collapse = ", ")
+    if (disagree) paste0(v, "  *") else v
+  })
+  out
+}
+
+format_number = function(x) {
+  x = as.character(signif(x, 3))
+  replace_na(x, "")
+}
+
+summary_categorical = summary_means %>%
+  filter(type == "categorical", !is.na(value_count), value_count != "") %>%
+  mutate(trait_values = format_categorical(trait_name, value_count, n_records))
+
+# reproductive_maturity has always been served as a categorical trait,
+# "<years> years"; keep it there so the response keeps its shape
+summary_maturity = summary_means %>%
+  filter(trait_name == "reproductive_maturity", !is.na(value)) %>%
+  mutate(trait_values = str_c(format_number(value), " years"))
+
+summary_numeric = summary_means %>%
+  filter(type == "numerical", trait_name != "reproductive_maturity") %>%
+  mutate(min = format_number(value_min),
+         mean = format_number(value),
+         max = format_number(value_max),
+         unit = gsub("^mo$", "months", unit),
+         unit = gsub("^d$", "days", unit))
+
+trait_summary = bind_rows(
+  bind_rows(summary_categorical, summary_maturity) %>%
+    mutate(block = "categorical", unit = NA_character_),
+  summary_numeric %>% mutate(block = "numeric")) %>%
+  select(taxon_name, ranking, block, trait_name, label, definition, trait_values, min, mean, max, unit) %>%
+  arrange(taxon_name, block, ranking)
 
 
 ######################### Ecocommons trait data prep ############################
@@ -147,9 +166,12 @@ trait_type = located_data %>% dplyr::select(trait_name, unit) %>% unique() %>% m
 # Save all objects in a single RDS file
 saveRDS(
   list(
+    data_version = ver,
+    data_doi = data_doi,
     month = month,
     aus_wide = aus_wide,
-    aus_wide_means = aus_wide_means,
+    taxon_lookup = taxon_lookup,
+    trait_summary = trait_summary,
     trait_type = trait_type,
     located_data = located_data
   ),
@@ -157,5 +179,5 @@ saveRDS(
 )
 
 # To reload later, use:
-# list2env(readRDS("data/austraits_processed.rds"), envir = .GlobalEnv)
+# list2env(readRDS(sprintf("data/austraits_processed_API_v%s.rds", ver)), envir = .GlobalEnv)
 

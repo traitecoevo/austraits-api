@@ -14,9 +14,19 @@ the API is an iterative process driven by our partners' needs, so endpoints may 
 
 ```r
 # install.packages("remotes")
-remotes::install_github("traitecoevo/austraits.build")
-install.packages("plumber")
+remotes::install_github("traitecoevo/austraits") # 4.0.1 or later
+install.packages(c("plumber", "dplyr", "tidyr", "stringr", "readr", "purrr", "yaml"))
 ```
+
+## Data
+
+The API serves one AusTraits release, from `API.build/data/austraits_processed_API_v<version>.rds` (git-ignored). To build it for a new release:
+
+1. Set `ver` in `API.build/dataset_prep.R` and `data_version` at the top of `API.build/API examples v1.R` to the release, e.g. `"8.0.0"`.
+2. From inside `API.build/`, run `Rscript dataset_prep.R` (about 3 minutes). It loads the release and the observed species means published with it, using `austraits::load_austraits(version = ver)` and `load_austraits(version = ver, means = TRUE)`; files already in `API.build/data/austraits/` are not downloaded again.
+3. Check the response shape against the previous release: run the previous code and data on one port and the new on another, then `Rscript compare_api_versions.R <old URL> <new URL> 200` from `API.build/`.
+
+`/trait-summary` and the summary count in `/trait-count` serve those published means, formatted as these endpoints have always returned them: one value per species (subspecies, varieties and forms take their species' value), the geometric observed mean for numeric traits (arithmetic for traits on a signed scale), and for categorical traits every value recorded, with `*` when records disagree.
 
 ## Run the API
 
