@@ -40,3 +40,6 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+
+# Output of API.build/compare_api_versions.R
+API.build/compare_api_versions.csv
