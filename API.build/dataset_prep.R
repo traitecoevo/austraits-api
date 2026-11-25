@@ -145,6 +145,16 @@ trait_summary = bind_rows(
   arrange(taxon_name, block, ranking)
 
 
+########################## /species-means prep ###############################
+
+# The published observed means as they are, for /species-means, with each
+# trait's label and definition URI
+species_means = austraits_means %>%
+  left_join(out %>% rename(trait_label = label), by = "trait_name") %>%
+  relocate(trait_label, definition, .after = trait_name) %>%
+  arrange(taxon_name, trait_name)
+
+
 ######################### Ecocommons trait data prep ############################
 
 located_data = aus_wide %>%
@@ -172,6 +182,7 @@ saveRDS(
     aus_wide = aus_wide,
     taxon_lookup = taxon_lookup,
     trait_summary = trait_summary,
+    species_means = species_means,
     trait_type = trait_type,
     located_data = located_data
   ),

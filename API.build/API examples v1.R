@@ -24,16 +24,20 @@ query_taxon = function(taxon = "", APNI_ID = ""){
   ""
 }
 
+# The species a taxon's means are filed under: the taxon itself when it has
+# rows in `table`, otherwise for a subspecies, variety or form its species
+means_taxon = function(taxon, table){
+  if (taxon == "" || taxon %in% table$taxon_name) return(taxon)
+  species = str_remove(taxon, "\\s+(subsp\\.|var\\.|f\\.)\\s.*$")
+  if (species != taxon && species %in% table$taxon_name) return(species)
+  taxon
+}
+
 # The species-mean rows for a taxon. Means are per species: a subspecies,
 # variety or form with no rows of its own gets its species' rows, named as
 # the species
 summary_rows = function(taxon){
-  rows = trait_summary %>% filter(taxon_name == taxon)
-  if (nrow(rows) == 0 && taxon != ""){
-    species = str_remove(taxon, "\\s+(subsp\\.|var\\.|f\\.)\\s.*$")
-    if (species != taxon) rows = trait_summary %>% filter(taxon_name == species)
-  }
-  rows
+  trait_summary %>% filter(taxon_name == means_taxon(taxon, trait_summary))
 }
 
 ################################################################################
@@ -167,6 +171,40 @@ function(taxon = "", APNI_ID = ""){
   if (nrow(output1) == 0) output1 = list()
 
   list(categorical_traits = output, numeric_traits = output1)
+}
+
+
+################################################################################
+# 1.2.1 The observed species means published with the AusTraits release
+
+#* @apiDescription
+#* Return the observed species means published with the AusTraits release for a taxon, as published: one row per trait, with the columns described in the release's observed-means dictionary. Replaces /trait-summary, which serves the same means reformatted.
+
+#* @param taxon e.g. Eucalyptus saligna
+#* @param APNI_ID e.g. 2912252 (For Eucalyptus saligna)
+#* @param traits Optional comma-separated trait names, e.g. plant_height,leaf_area
+#* @serializer json list(digits = NA, na = "null", auto_unbox = TRUE)
+#* @get /species-means
+
+function(taxon = "", APNI_ID = "", traits = ""){
+
+  query = query_taxon(taxon, APNI_ID)
+  name = means_taxon(query, species_means)
+
+  means = species_means %>% filter(taxon_name == name)
+  if (traits != ""){
+    means = means %>% filter(trait_name %in% str_trim(str_split_1(traits, ",")))
+  }
+
+  list(
+    data_version = data_version,
+    doi = data_doi,
+    query = list(taxon = taxon, APNI_ID = APNI_ID, traits = traits),
+    taxon_name = if (nrow(means) > 0) name else NA_character_,
+    # TRUE when a subspecies, variety or form is answered with its species' means
+    species_of_query = nrow(means) > 0 && name != query,
+    means = means
+  )
 }
 
 

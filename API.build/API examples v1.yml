@@ -34,7 +34,7 @@ paths:
           required: false
   /trait-summary:
     get:
-      summary: "For ALA: Returns the average trait value per trait for a given species"
+      summary: "For ALA (deprecated, use /species-means): Returns the average trait value per trait for a given species"
       description: This function returns a table of summarised trait data (a simple range and mean value for numerical traits and unique categorical trait values) for a given taxa from the taxon_name data field in AusTraits
       responses:
        default:
@@ -49,6 +49,40 @@ paths:
         - in: query
           name: APNI_ID
           description: e.g. e.g. 2912252 (For Eucalyptus saligna)
+          required: false
+          schema:
+            type: string
+  /species-means:
+    get:
+      summary: "ALL users: Returns the observed species means published with the AusTraits release, as published"
+      description: >-
+        Returns one row per trait for a taxon, with the columns of the observed species means published with the AusTraits release
+        (taxon_name, trait_name, trait_label, definition, unit, type, estimate_type, method, value, log_value, arithmetic_mean,
+        value_min, value_max, value_mode, value_count, n_records, n_locations, n_datasets, n_flora, n_field, sd_log, reliability,
+        dataset_id, source_id, taxon_rank, genus, family, establishment_means, taxon_id). Each column is defined in the release's
+        observed-means dictionary (austraits-<version>-observed-means-dictionary.csv on Zenodo). Means are per species: a
+        subspecies, variety or form is answered with its species' means, and species_of_query is then true. The response also
+        gives data_version and doi. This endpoint replaces /trait-summary, which serves the same means reformatted and will be
+        retired.
+      responses:
+       default:
+        description: Default response
+      parameters:
+        - in: query
+          name: taxon
+          description: e.g. Eucalyptus saligna
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: APNI_ID
+          description: e.g. 2912252 (For Eucalyptus saligna)
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: traits
+          description: Optional comma-separated trait names, e.g. plant_height,leaf_area
           required: false
           schema:
             type: string
