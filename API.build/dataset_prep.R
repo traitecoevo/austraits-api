@@ -39,11 +39,14 @@ out = tibble(trait_name = unique(aus_wide$trait_name)) %>%
          definition = map_chr(trait_name, ~ def[[.x]]$entity_URI))
 
 # Taxon name for each APNI identifier, for the APNI_ID queries
-# (taxon_id is a URI ending in the identifier)
-taxon_lookup = aus_wide %>%
-  distinct(taxon_name, taxon_id) %>%
-  filter(!is.na(taxon_id)) %>%
-  mutate(APNI_ID = str_extract(taxon_id, "[0-9]+$"))
+# (taxon_id is a URI ending in the identifier). The means add species whose
+# records are all infraspecific
+taxon_lookup = bind_rows(
+    aus_wide %>% distinct(taxon_name, taxon_id),
+    austraits_means %>% distinct(taxon_name, taxon_id)) %>%
+  distinct() %>%
+  mutate(APNI_ID = str_extract(taxon_id, "[0-9]+$")) %>%
+  filter(!is.na(APNI_ID))
 
 ############# create the wide table base for most of the outputs ################
 
@@ -96,9 +99,10 @@ split_value_count = function(value_count) {
 }
 
 # Categorical traits: the values recorded, sorted and joined by ", ", with
-# "  *" appended when the records disagree. Months are listed in calendar
-# order (value_count already is); the records disagree when any month is
-# marked by fewer than all of them.
+# "  *" appended when there is more than one value, as before. Months are
+# listed in calendar order (value_count already is), with "  *" when any
+# month is marked by fewer than all records (before: when the records'
+# month strings differed, which is the same thing).
 format_categorical = function(trait_name, value_count, n_records) {
   vc = split_value_count(value_count)
   out = pmap_chr(list(trait_name, vc$values, vc$counts, n_records), function(t, v, n, total) {

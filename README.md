@@ -26,7 +26,7 @@ The API serves one AusTraits release, from `API.build/data/austraits_processed_A
 2. From inside `API.build/`, run `Rscript dataset_prep.R` (about 3 minutes). It loads the release and the observed species means published with it, using `austraits::load_austraits(version = ver)` and `load_austraits(version = ver, means = TRUE)`; files already in `API.build/data/austraits/` are not downloaded again.
 3. Check the response shape against the previous release: run the previous code and data on one port and the new on another, then `Rscript compare_api_versions.R <old URL> <new URL> 200` from `API.build/`.
 
-`/trait-summary` and the summary count in `/trait-count` serve those published means, formatted as these endpoints have always returned them: one value per species (subspecies, varieties and forms take their species' value), the geometric observed mean for numeric traits (arithmetic for traits on a signed scale), and for categorical traits every value recorded, with `*` when records disagree.
+`/trait-summary` and the summary count in `/trait-count` serve those published means, formatted as these endpoints have always returned them: one value per species (subspecies, varieties and forms take their species' value), the geometric observed mean for numeric traits (arithmetic for traits on a signed scale), and for categorical traits every value recorded, with `*` when there is more than one (for flowering and fruiting months, when the records mark different months).
 
 ## Run the API
 
@@ -62,7 +62,7 @@ Endpoints are defined in `API.build/API examples v1.R`:
 
 ### `/species-means` replaces `/trait-summary`
 
-`/species-means?taxon=Eucalyptus%20saligna` (or `APNI_ID=2912252`; optionally `traits=plant_height,leaf_area`) returns the observed species means published with the AusTraits release, one row per trait, with the columns of the release's observed-means dictionary (`austraits-<version>-observed-means-dictionary.csv` on Zenodo): the value and how it was found (`estimate_type`, `method`), its range, the evidence behind it (`n_records`, `n_datasets`, `reliability`) and the datasets and references it comes from. Numbers are sent unrounded. The response also gives `data_version` and `doi`, and `species_of_query` is `true` when a subspecies, variety or form is answered with its species' means.
+`/species-means?taxon=Eucalyptus%20saligna` (or `APNI_ID=2912252`; optionally `traits=plant_height,leaf_area`) returns the observed species means published with the AusTraits release, one row per trait (`means`), with the columns of the release's observed-means dictionary (`austraits-<version>-observed-means-dictionary.csv` on Zenodo), plus each trait's `trait_label` and `definition` URI: the value and how it was found (`estimate_type`, `method`), its range, the evidence behind it (`n_records`, `n_datasets`, `reliability`) and the datasets and references it comes from. Numbers are sent unrounded. The response also gives `data_version`, `doi`, the `query`, and `taxon_name` (the name the means are filed under, or `null` when there are none); `species_of_query` is `true` when a subspecies, variety or form is answered with its species' means.
 
 `/trait-summary` serves the same means reformatted (rounded, as strings, categorical values joined) for the ALA trait list. It is deprecated: partners are asked to move to `/species-means`, after which `/trait-summary` will be retired.
 

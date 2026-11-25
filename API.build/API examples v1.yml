@@ -56,14 +56,16 @@ paths:
     get:
       summary: "ALL users: Returns the observed species means published with the AusTraits release, as published"
       description: >-
-        Returns one row per trait for a taxon, with the columns of the observed species means published with the AusTraits release
-        (taxon_name, trait_name, trait_label, definition, unit, type, estimate_type, method, value, log_value, arithmetic_mean,
-        value_min, value_max, value_mode, value_count, n_records, n_locations, n_datasets, n_flora, n_field, sd_log, reliability,
-        dataset_id, source_id, taxon_rank, genus, family, establishment_means, taxon_id). Each column is defined in the release's
-        observed-means dictionary (austraits-<version>-observed-means-dictionary.csv on Zenodo). Means are per species: a
-        subspecies, variety or form is answered with its species' means, and species_of_query is then true. The response also
-        gives data_version and doi. This endpoint replaces /trait-summary, which serves the same means reformatted and will be
-        retired.
+        Returns {data_version, doi, query, taxon_name, species_of_query, means}. means has one row per trait for the taxon, with
+        the columns of the observed species means published with the AusTraits release, in their published order (taxon_name,
+        trait_name, unit, estimate_type, method, value, log_value, arithmetic_mean, value_min, value_max, n_records, n_locations,
+        n_datasets, n_flora, n_field, sd_log, reliability, dataset_id, source_id, type, value_mode, value_count, taxon_rank, genus,
+        family, establishment_means, taxon_id), each defined in the release's observed-means dictionary
+        (austraits-<version>-observed-means-dictionary.csv on Zenodo). The API adds trait_label and definition (the trait's
+        label and definition URI) after trait_name. Numbers are unrounded and missing values are null. Means are per species:
+        a subspecies, variety or form is answered with its species' means, and species_of_query is then true. taxon_name is
+        null when the taxon has no means. This endpoint replaces /trait-summary, which serves the same means reformatted and
+        will be retired.
       responses:
        default:
         description: Default response

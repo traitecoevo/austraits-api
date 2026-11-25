@@ -14,28 +14,31 @@ data_version <- "8.0.0"
 list2env(readRDS(sprintf("data/austraits_processed_API_v%s.rds", data_version)), envir = .GlobalEnv)
 
 # The taxon a query names: the taxon given, or the taxon whose APNI identifier
-# (the number ending taxon_id) is given
+# (the number ending taxon_id) is given. A repeated query parameter arrives
+# as a vector; the first value is used
 query_taxon = function(taxon = "", APNI_ID = ""){
-  if (taxon != "") return(taxon)
-  if (APNI_ID != ""){
-    x = taxon_lookup$taxon_name[taxon_lookup$APNI_ID == as.character(APNI_ID)]
+  taxon = taxon[1]
+  APNI_ID = APNI_ID[1]
+  if (!is.na(taxon) && taxon != "") return(taxon)
+  if (!is.na(APNI_ID) && APNI_ID != ""){
+    x = taxon_lookup$taxon_name[which(taxon_lookup$APNI_ID == as.character(APNI_ID))]
     if (length(x) > 0) return(x[1])
   }
   ""
 }
 
-# The species a taxon's means are filed under: the taxon itself when it has
-# rows in `table`, otherwise for a subspecies, variety or form its species
+# The name a taxon's means are filed under in `table`: the taxon itself when
+# it has rows, otherwise the species a subspecies, variety or form rolls up
+# to. The roll-up is traits.use's own, the one that built the published means
+# (it leaves hybrid formulae and genus-level names alone)
 means_taxon = function(taxon, table){
   if (taxon == "" || taxon %in% table$taxon_name) return(taxon)
-  species = str_remove(taxon, "\\s+(subsp\\.|var\\.|f\\.)\\s.*$")
+  species = traits.use:::trait_means_species(taxon)
   if (species != taxon && species %in% table$taxon_name) return(species)
   taxon
 }
 
-# The species-mean rows for a taxon. Means are per species: a subspecies,
-# variety or form with no rows of its own gets its species' rows, named as
-# the species
+# The species-mean rows for a taxon (see means_taxon())
 summary_rows = function(taxon){
   trait_summary %>% filter(taxon_name == means_taxon(taxon, trait_summary))
 }
@@ -92,15 +95,19 @@ function(taxon = "", APNI_ID = ""){
   # convert any APNI ID queries into a taxon_name string
   taxon = query_taxon(taxon, APNI_ID)
 
-  # Traits in AusTraits for this taxon
-  traits_all = unique(aus_wide$trait_name[aus_wide$taxon_name == taxon])
+  # The name /trait-summary answers under: the taxon, or for a subspecies,
+  # variety or form without its own summary, its species
+  summary_name = means_taxon(taxon, trait_summary)
+
+  # Traits in AusTraits for this taxon (and the species it is summarised under)
+  traits_all = unique(aus_wide$trait_name[aus_wide$taxon_name %in% unique(c(taxon, summary_name))])
   x = length(traits_all)
 
   # Traits summarised by /trait-summary for this taxon
   traits_summary = unique(summary_rows(taxon)$trait_name)
   x1 = length(traits_summary)
 
-  y = taxon
+  y = if (x1 > 0) summary_name else taxon
 
   # Further traits with data: those not in the summary
   z = length(setdiff(traits_all, traits_summary))
@@ -190,19 +197,25 @@ function(taxon = "", APNI_ID = "", traits = ""){
 
   query = query_taxon(taxon, APNI_ID)
   name = means_taxon(query, species_means)
+  found = name != "" && name %in% species_means$taxon_name
+
+  # traits=a,b and traits=a&traits=b both work
+  traits = str_trim(unlist(str_split(traits, ",")))
+  traits = traits[traits != ""]
 
   means = species_means %>% filter(taxon_name == name)
-  if (traits != ""){
-    means = means %>% filter(trait_name %in% str_trim(str_split_1(traits, ",")))
+  if (length(traits) > 0){
+    means = means %>% filter(trait_name %in% traits)
   }
 
   list(
     data_version = data_version,
     doi = data_doi,
-    query = list(taxon = taxon, APNI_ID = APNI_ID, traits = traits),
-    taxon_name = if (nrow(means) > 0) name else NA_character_,
+    query = list(taxon = taxon[1], APNI_ID = APNI_ID[1], traits = paste(traits, collapse = ",")),
+    # The name the means are filed under; null when the taxon has none
+    taxon_name = if (found) name else NA_character_,
     # TRUE when a subspecies, variety or form is answered with its species' means
-    species_of_query = nrow(means) > 0 && name != query,
+    species_of_query = found && name != query,
     means = means
   )
 }
