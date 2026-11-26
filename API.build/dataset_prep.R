@@ -127,11 +127,40 @@ summary_categorical = summary_means %>%
   filter(type == "categorical", !is.na(value_count), value_count != "") %>%
   mutate(trait_values = format_categorical(trait_name, value_count, n_records))
 
-# reproductive_maturity has always been served as a categorical trait,
-# "<years> years"; keep it there so the response keeps its shape
-summary_maturity = summary_means %>%
-  filter(trait_name == "reproductive_maturity", !is.na(value)) %>%
+# reproductive_maturity has always been served as a categorical trait, so keep
+# it there and keep the response shape. The published means cover only 541
+# species, because most records are open ranges such as "10--" that cannot be
+# averaged (8,990 species have records). So, as before, the values recorded
+# for the species are listed as text: adult records from field, specimen or
+# literature sources, each value as recorded (two decimals at most, "years"
+# added to plain numbers), sorted and joined by ", ", with "  *" when there is
+# more than one value. A taxon with no such records but with a published mean
+# gets that mean, "<mean> years".
+maturity_basis = c("preserved_specimen", "field", "literature", "field_experiment")
+summary_maturity_raw = aus_wide %>%
+  filter(trait_name == "reproductive_maturity", !is.na(trait_value)) %>%
+  filter(str_detect(life_stage, "adult")) %>%
+  filter(map_lgl(str_split(basis_of_record, "[, ]+"), ~ all(.x %in% maturity_basis))) %>%
+  mutate(trait_value = ifelse(str_detect(trait_value, "[0-9]+\\.[0-9]{2}"),
+                              str_extract(trait_value, "[0-9]+\\.[0-9]{2}"), trait_value),
+         trait_value = ifelse(str_detect(trait_value, "--"), trait_value, str_c(trait_value, "_years"))) %>%
+  group_by(taxon_name) %>%
+  summarise(values = list(sort(unique(trait_value))), .groups = "drop") %>%
+  mutate(trait_values = map_chr(values, function(v) {
+    txt = paste(gsub("_", " ", v), collapse = ", ")
+    if (length(v) > 1) paste0(txt, "  *") else txt
+  })) %>%
+  select(taxon_name, trait_values) %>%
+  mutate(trait_name = "reproductive_maturity") %>%
+  left_join(ord, by = "trait_name") %>%
+  left_join(out, by = "trait_name")
+
+summary_maturity_means = summary_means %>%
+  filter(trait_name == "reproductive_maturity", !is.na(value),
+         !taxon_name %in% summary_maturity_raw$taxon_name) %>%
   mutate(trait_values = str_c(format_number(value), " years"))
+
+summary_maturity = bind_rows(summary_maturity_raw, summary_maturity_means)
 
 summary_numeric = summary_means %>%
   filter(type == "numerical", trait_name != "reproductive_maturity") %>%
